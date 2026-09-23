@@ -180,3 +180,53 @@ def load_teams() -> pd.DataFrame:
     """CFBD team ids (same as ESPN ids) and school names, for joining name-keyed tables."""
     df = pd.DataFrame(get("/teams"))
     return df[["id", "school"]].rename(columns={"id": "team_id", "school": "team"})
+
+
+# ---------------------------------------------------------------- preseason information
+
+
+def load_portal(seasons: list[int]) -> pd.DataFrame:
+    """Transfer portal entries: one row per player move (origin → destination) per season."""
+    rows = [r for s in seasons for r in get("/player/portal", year=s)]
+    cols = ["season", "origin", "destination", "stars", "rating", "transferDate"]
+    return pd.DataFrame(rows, columns=cols)
+
+
+def load_recruiting(seasons: list[int]) -> pd.DataFrame:
+    """Team recruiting class points per season (the class signed before that season)."""
+    rows = [r for s in seasons for r in get("/recruiting/teams", year=s)]
+    return pd.DataFrame(rows)[["year", "team", "points"]].rename(
+        columns={"year": "season", "points": "recruit_points"}
+    )
+
+
+def load_coaches(seasons: list[int]) -> pd.DataFrame:
+    """One row per (coach, team, season) with the coach's hire date and games coached."""
+    rows = []
+    for s in seasons:
+        for coach in get("/coaches", year=s):
+            for season in coach.get("seasons", []):
+                rows.append(
+                    {
+                        "season": season["year"],
+                        "team_id": season["teamId"],
+                        "coach": f"{coach['firstName']} {coach['lastName']}",
+                        "hire_date": coach.get("hireDate"),
+                        "games": season.get("games", 0),
+                    }
+                )
+    return pd.DataFrame(rows).drop_duplicates(["season", "team_id", "coach"])
+
+
+def load_preseason_ap(seasons: list[int]) -> pd.DataFrame:
+    """Preseason AP Top 25 (the week-1 poll, released in August): points per ranked team."""
+    rows = []
+    for s in seasons:
+        for week in get("/rankings", year=s, seasonType="regular", week=1):
+            for poll in week.get("polls", []):
+                if poll.get("poll") != "AP Top 25":
+                    continue
+                for r in poll.get("ranks", []):
+                    rows.append({"season": s, "team_id": r["teamId"], "ap_points": r["points"],
+                                 "ap_rank": r["rank"]})  # fmt: skip
+    return pd.DataFrame(rows)

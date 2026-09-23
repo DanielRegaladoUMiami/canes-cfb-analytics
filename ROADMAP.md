@@ -12,6 +12,8 @@ Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
 - [x] Feature engineering v1 (score-only): ridge ratings, Elo, matchup, context + ablation (#5)
 - [x] Feature engineering v2 (CFBD): efficiency, pace × efficiency, unit matchups, priors (#6), 9.30 vs market 8.91
 - [x] First backtest vs lines: not profitable yet; positive CLV vs opening lines
+- [x] Preseason features (portal, recruiting, new coach, preseason AP): early-season gap 1.96 → 1.84 (2021–23), 1.32 → 1.11 (2024–25)
+- [ ] Bowls and blowouts gaps (#11)
 - [ ] Weather features (needs a source)
 
 ## v0.2 — points per team model (full game)

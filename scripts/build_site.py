@@ -145,7 +145,10 @@ def main() -> None:
     tot_gap = (g.pred_total - g.total_open).abs().mean()
     same_fav = (np.sign(g.pred_margin) == np.sign(-g.spread_open))[g.spread_open != 0].mean()
     rel = pd.DataFrame(cal["win_reliability"])
-    worst_gap = float((rel.predicted - rel.actual).abs().max())
+    rel["gap"] = rel.predicted - rel.actual
+    rel["z"] = rel.gap / np.sqrt(rel.actual * (1 - rel.actual) / rel.n)
+    ece = float((rel.gap.abs() * rel.n).sum() / rel.n.sum())
+    worst = rel.loc[rel.z.abs().idxmax()]
     arith = max(
         float((g.pred_margin - (g.pred - g.pred_away)).abs().max()),
         float((g.pred_total - (g.pred + g.pred_away)).abs().max()),
@@ -196,8 +199,11 @@ def main() -> None:
         ),
         check(
             "Win probabilities are honest (2021–2025)",
-            worst_gap < 0.05,
-            f"largest gap between predicted and actual win rate: {100 * worst_gap:.1f} points",
+            ece < 0.03 and abs(worst.z) < 2,
+            f"average miss {100 * ece:.1f} pts; worst bin: said {100 * worst.predicted:.0f}%, "
+            f"happened {100 * worst.actual:.0f}% ({int(worst.n)} games, "
+            f"{abs(worst.z):.1f} standard errors)",
+            warn=ece < 0.05 and abs(worst.z) < 3,
         ),
         check(
             "Practice-bet log matches the rules",

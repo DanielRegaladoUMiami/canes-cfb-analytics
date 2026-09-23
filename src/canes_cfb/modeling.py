@@ -29,7 +29,8 @@ from xgboost import XGBRegressor
 from canes_cfb.features import cumulative_sets
 from canes_cfb.validation import walk_forward
 
-FEATURES = cumulative_sets()["+priors"]
+# +preseason adopted 2026-09-23 (decided on 2021-23, confirmed on 2024-25).
+FEATURES = cumulative_sets()["+preseason"]
 SEED = 7
 
 

@@ -1,6 +1,6 @@
 """Predict the next slate of games and print the weekly card.
 
-    uv run python scripts/predict_week.py [--no-refresh]
+    uv run python scripts/predict_week.py [--no-refresh] [--no-log]
 
 1. Refresh the current season (ESPN scores + CFBD lines and advanced stats, ~3 CFBD calls).
 2. Rebuild the feature table.
@@ -59,6 +59,13 @@ def refresh() -> None:
     cfbd.load_talent(seasons).to_parquet(RAW / "talent.parquet", index=False)
     cfbd.load_returning(seasons).to_parquet(RAW / "returning.parquet", index=False)
     cfbd.load_teams().to_parquet(RAW / "teams.parquet", index=False)
+    # Preseason information (portal, recruiting, coaches, preseason AP poll).
+    cfbd.load_portal(list(range(2021, SEASON + 1))).to_parquet(RAW / "portal.parquet", index=False)
+    cfbd.load_recruiting(list(range(2011, SEASON + 1))).to_parquet(
+        RAW / "recruiting.parquet", index=False
+    )
+    cfbd.load_coaches(seasons).to_parquet(RAW / "coaches.parquet", index=False)
+    cfbd.load_preseason_ap(seasons).to_parquet(RAW / "preseason_ap.parquet", index=False)
 
 
 def main() -> None:
@@ -146,7 +153,8 @@ def main() -> None:
         cols = ["rule", "away", "home", "total_open", "total_close", "pred_total", "exp_total",
                 "total_edge", "total_pick"]  # fmt: skip
         print(bets[cols].round(1).to_string(index=False))
-    log_paper_bets(bets)
+    if "--no-log" not in sys.argv:
+        log_paper_bets(bets)
     print(f"\nsaved {PREDICTIONS / name}")
 
 

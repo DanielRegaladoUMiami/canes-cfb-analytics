@@ -1,74 +1,74 @@
 {
   "seasons": "2021-2025",
   "games": 3943,
-  "sigma_margin": 16.038136023257586,
-  "sigma_total": 16.220531473555884,
-  "mae_margin": 12.736938404709553,
-  "mae_total": 12.943219540599943,
+  "sigma_margin": 16.002942711219923,
+  "sigma_total": 16.220300377980173,
+  "mae_margin": 12.704907099500995,
+  "mae_total": 12.94026130106062,
   "win_reliability": [
     {
-      "predicted": 0.0637,
+      "predicted": 0.0632,
       "actual": 0.0737,
       "n": 95
     },
     {
-      "predicted": 0.1526,
-      "actual": 0.1576,
-      "n": 165
+      "predicted": 0.1522,
+      "actual": 0.1796,
+      "n": 167
     },
     {
-      "predicted": 0.2512,
-      "actual": 0.2769,
-      "n": 307
+      "predicted": 0.251,
+      "actual": 0.2568,
+      "n": 296
     },
     {
-      "predicted": 0.3549,
-      "actual": 0.3629,
-      "n": 383
+      "predicted": 0.3523,
+      "actual": 0.3798,
+      "n": 387
     },
     {
-      "predicted": 0.4513,
-      "actual": 0.4257,
-      "n": 498
+      "predicted": 0.4511,
+      "actual": 0.4004,
+      "n": 492
     },
     {
-      "predicted": 0.5507,
-      "actual": 0.5299,
-      "n": 585
+      "predicted": 0.5497,
+      "actual": 0.5373,
+      "n": 590
     },
     {
-      "predicted": 0.6494,
-      "actual": 0.657,
-      "n": 551
+      "predicted": 0.6489,
+      "actual": 0.6465,
+      "n": 546
     },
     {
       "predicted": 0.7501,
-      "actual": 0.7652,
-      "n": 494
+      "actual": 0.7746,
+      "n": 497
     },
     {
-      "predicted": 0.8468,
-      "actual": 0.8452,
+      "predicted": 0.8467,
+      "actual": 0.8409,
       "n": 465
     },
     {
-      "predicted": 0.9471,
-      "actual": 0.955,
-      "n": 400
+      "predicted": 0.9484,
+      "actual": 0.9583,
+      "n": 408
     }
   ],
   "spread_vs_open": {
-    "intercept": -0.004627805682436339,
+    "intercept": -0.004657527261112477,
     "coef": {
-      "edge": -0.0005491999029311938
+      "edge": 0.0002103445395824987
     },
     "n": 3875
   },
   "total_vs_open": {
-    "intercept": -0.05696058345095878,
+    "intercept": -0.057921708189020905,
     "coef": {
-      "edge": 0.01865511592969282,
-      "shootout": -0.21663916740367975
+      "edge": 0.018463167397664845,
+      "shootout": -0.21611766791522852
     },
     "n": 3908
   }

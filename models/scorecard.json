@@ -4,10 +4,10 @@
   "winner": {
     "games": 3770,
     "model": {
-      "accuracy": 0.7010610079575597,
-      "auc": 0.7690921619293711,
-      "brier": 0.19246950906973767,
-      "log_loss": 0.564388790443748
+      "accuracy": 0.7042440318302388,
+      "auc": 0.7699190353143842,
+      "brier": 0.19222642895145958,
+      "log_loss": 0.5637547908382639
     },
     "market": {
       "accuracy": 0.7108753315649867,
@@ -17,56 +17,56 @@
     }
   },
   "spread": {
-    "mae_margin_model": 12.736938404709553,
+    "mae_margin_model": 12.704907099500995,
     "mae_margin_market": 12.12211514075577,
     "ats_vs_close": {
-      "win_rate": 0.4897959183673469,
+      "win_rate": 0.4936708860759494,
       "n": 3871
     },
     "ats_vs_open": {
-      "win_rate": 0.4983225806451613,
+      "win_rate": 0.5058064516129033,
       "n": 3875
     }
   },
   "total": {
-    "mae_model": 12.943219540599943,
+    "mae_model": 12.94026130106062,
     "mae_market": 12.538993152422014,
     "ou_vs_close": {
-      "win_rate": 0.5016688061617458,
+      "win_rate": 0.5042362002567394,
       "n": 3895
     },
     "ou_vs_open": {
-      "win_rate": 0.5048618219037871,
+      "win_rate": 0.5066530194472876,
       "n": 3908
     }
   },
   "team_total": {
-    "mae_model": 9.146135091813484,
+    "mae_model": 9.135209792572722,
     "mae_market": 8.76740426071519
   },
   "periods": {
     "1H": {
-      "mae_model": 6.403907801600824,
+      "mae_model": 6.411007987981744,
       "mae_constant": 7.233632182211705
     },
     "2H": {
-      "mae_model": 6.216735384876564,
+      "mae_model": 6.217368836459817,
       "mae_constant": 6.700435618741101
     },
     "Q1": {
-      "mae_model": 4.177882100057559,
+      "mae_model": 4.182456260419107,
       "mae_constant": 4.471678078416583
     },
     "Q2": {
-      "mae_model": 4.749653142305404,
+      "mae_model": 4.749677864723842,
       "mae_constant": 5.148727236199205
     },
     "Q3": {
-      "mae_model": 4.231625049917841,
+      "mae_model": 4.230479999863698,
       "mae_constant": 4.490153003111772
     },
     "Q4": {
-      "mae_model": 4.3895017518843975,
+      "mae_model": 4.389558683422483,
       "mae_constant": 4.411675314882254
     }
   },
@@ -74,127 +74,127 @@
     "week_bucket": {
       "Weeks 0-2": {
         "games": 479.0,
-        "model": 13.5692,
+        "model": 13.4119,
         "market": 11.8559,
-        "model_acc": 0.7265,
+        "model_acc": 0.7328,
         "market_acc": 0.7599,
-        "gap": 1.7132
+        "gap": 1.5559
       },
       "Weeks 3-4": {
         "games": 540.0,
-        "model": 13.2997,
+        "model": 13.2208,
         "market": 12.3329,
-        "model_acc": 0.7333,
+        "model_acc": 0.7444,
         "market_acc": 0.7593,
-        "gap": 0.9669
+        "gap": 0.888
       },
       "Weeks 5-8": {
         "games": 1075.0,
-        "model": 12.4138,
+        "model": 12.3852,
         "market": 11.9533,
-        "model_acc": 0.7079,
+        "model_acc": 0.707,
         "market_acc": 0.7163,
-        "gap": 0.4605
+        "gap": 0.432
       },
       "Weeks 9+": {
         "games": 1635.0,
-        "model": 12.453,
+        "model": 12.4623,
         "market": 12.2453,
-        "model_acc": 0.715,
+        "model_acc": 0.7217,
         "market_acc": 0.7193,
-        "gap": 0.2077
+        "gap": 0.2171
       },
       "Bowls/CFP": {
         "games": 214.0,
-        "model": 13.2465,
+        "model": 13.2798,
         "market": 12.0935,
-        "model_acc": 0.6075,
+        "model_acc": 0.5794,
         "market_acc": 0.6542,
-        "gap": 1.1531
+        "gap": 1.1863
       }
     },
     "spread_bucket": {
       "Pick'em to 3": {
         "games": 827.0,
-        "model": 12.2006,
+        "model": 12.187,
         "market": 11.8767,
-        "model_acc": 0.5103,
+        "model_acc": 0.5187,
         "market_acc": 0.526,
-        "gap": 0.324
+        "gap": 0.3104
       },
       "3.5 to 7": {
         "games": 1028.0,
-        "model": 12.3733,
+        "model": 12.322,
         "market": 11.7393,
-        "model_acc": 0.6128,
+        "model_acc": 0.6226,
         "market_acc": 0.643,
-        "gap": 0.634
+        "gap": 0.5827
       },
       "7.5 to 14": {
         "games": 1015.0,
-        "model": 12.8821,
+        "model": 12.8574,
         "market": 12.4416,
-        "model_acc": 0.7557,
+        "model_acc": 0.7507,
         "market_acc": 0.7665,
-        "gap": 0.4405
+        "gap": 0.4158
       },
       "14.5 to 21": {
         "games": 570.0,
-        "model": 13.0085,
+        "model": 12.9936,
         "market": 12.5728,
-        "model_acc": 0.8877,
+        "model_acc": 0.8895,
         "market_acc": 0.8895,
-        "gap": 0.4357
+        "gap": 0.4208
       },
       "21.5+": {
         "games": 503.0,
-        "model": 13.7613,
+        "model": 13.704,
         "market": 12.1526,
         "model_acc": 0.9523,
         "market_acc": 0.9523,
-        "gap": 1.6087
+        "gap": 1.5514
       }
     },
     "season": {
       "2021": {
         "games": 770.0,
-        "model": 13.3372,
+        "model": 13.2773,
         "market": 12.5487,
-        "model_acc": 0.7117,
+        "model_acc": 0.7091,
         "market_acc": 0.7273,
-        "gap": 0.7885
+        "gap": 0.7286
       },
       "2022": {
         "games": 776.0,
-        "model": 12.6952,
+        "model": 12.6578,
         "market": 12.0168,
-        "model_acc": 0.6972,
+        "model_acc": 0.7062,
         "market_acc": 0.7242,
-        "gap": 0.6785
+        "gap": 0.6411
       },
       "2023": {
         "games": 792.0,
-        "model": 12.5638,
+        "model": 12.5442,
         "market": 12.1398,
-        "model_acc": 0.7298,
+        "model_acc": 0.7323,
         "market_acc": 0.7311,
-        "gap": 0.424
+        "gap": 0.4043
       },
       "2024": {
         "games": 797.0,
-        "model": 12.7393,
+        "model": 12.7163,
         "market": 12.0985,
-        "model_acc": 0.7001,
+        "model_acc": 0.7026,
         "market_acc": 0.7077,
-        "gap": 0.6408
+        "gap": 0.6178
       },
       "2025": {
         "games": 808.0,
-        "model": 12.3723,
+        "model": 12.351,
         "market": 11.8227,
-        "model_acc": 0.7166,
+        "model_acc": 0.7215,
         "market_acc": 0.7364,
-        "gap": 0.5496
+        "gap": 0.5283
       }
     }
   }

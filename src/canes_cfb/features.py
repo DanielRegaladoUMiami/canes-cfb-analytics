@@ -317,6 +317,105 @@ def add_priors(
     return tg
 
 
+# ---------------------------------------------------------------- v3: preseason information
+
+
+def preseason_table(
+    portal: pd.DataFrame,
+    recruiting: pd.DataFrame,
+    coaches: pd.DataFrame,
+    teams: pd.DataFrame,
+    fbs_ids: set,
+    ap: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """One row per (season, team_id), all known before the season starts.
+
+    - portal: players in/out and net stars (a player without stars counts as 2).
+    - recruiting: this season's class points and the 4-year average (classes that make up
+      most of the roster).
+    - new_coach: the coach who starts the season was hired within the 12 months before it
+      (hired after Sep 1 of the previous year). Interims with no games are ignored.
+    - ap_points: preseason AP poll points (the week-1 poll, released in August); unranked
+      teams get 0 in seasons that have a poll.
+    """
+    name_to_id = teams[teams["team_id"].isin(fbs_ids)].drop_duplicates("team")
+    ids = dict(zip(name_to_id.team, name_to_id.team_id, strict=True))
+
+    moves = portal.assign(stars=portal["stars"].fillna(2))
+    incoming = moves.assign(team_id=moves.destination.map(ids)).dropna(subset=["team_id"])
+    outgoing = moves.assign(team_id=moves.origin.map(ids)).dropna(subset=["team_id"])
+    p_in = incoming.groupby(["season", "team_id"]).agg(
+        portal_in=("stars", "size"), portal_in_stars=("stars", "sum")
+    )
+    p_out = outgoing.groupby(["season", "team_id"]).agg(
+        portal_out=("stars", "size"), portal_out_stars=("stars", "sum")
+    )
+    port = p_in.join(p_out, how="outer").fillna(0)
+    port["portal_net_stars"] = port.portal_in_stars - port.portal_out_stars
+
+    rec = recruiting.assign(team_id=recruiting.team.map(ids)).dropna(subset=["team_id"])
+    rec = rec.pivot_table(index="team_id", columns="season", values="recruit_points")
+    rec_rows = []
+    for season in rec.columns:
+        window = [c for c in rec.columns if season - 3 <= c <= season]
+        rec_rows.append(
+            pd.DataFrame(
+                {
+                    "season": season,
+                    "team_id": rec.index,
+                    "recruit_points": rec[season].to_numpy(),
+                    "recruit_4yr": rec[window].mean(axis=1).to_numpy(),
+                }
+            )
+        )
+    rec_long = pd.concat(rec_rows).set_index(["season", "team_id"])
+
+    c = coaches.copy()
+    c["hire_date"] = pd.to_datetime(c["hire_date"], utc=True, errors="coerce")
+    c = c[c.team_id.isin(fbs_ids)]
+    played = c[c.games > 0]
+    starters = pd.concat(
+        [
+            played,
+            c[
+                ~c.set_index(["season", "team_id"]).index.isin(
+                    played.set_index(["season", "team_id"]).index
+                )
+            ],
+        ]
+    )
+    starters = starters.sort_values("hire_date").drop_duplicates(["season", "team_id"])
+    cutoff = pd.to_datetime((starters.season - 1).astype(str) + "-09-01", utc=True)
+    starters["new_coach"] = (starters.hire_date >= cutoff).astype(float)
+    coach = starters.set_index(["season", "team_id"])[["new_coach"]]
+
+    out = port.join(rec_long, how="outer").join(coach, how="outer").reset_index()
+    out["team_id"] = out.team_id.astype(int)
+    if ap is not None:
+        out = out.merge(
+            ap[["season", "team_id", "ap_points"]], on=["season", "team_id"], how="left"
+        )
+        polled = out.season.isin(set(ap.season))
+        out.loc[polled, "ap_points"] = out.loc[polled, "ap_points"].fillna(0)
+    else:
+        out["ap_points"] = np.nan
+    return out
+
+
+def add_preseason(tg: pd.DataFrame, pre: pd.DataFrame) -> pd.DataFrame:
+    cols = ["portal_in", "portal_out", "portal_net_stars", "recruit_points", "recruit_4yr",
+            "new_coach", "ap_points"]  # fmt: skip
+    tg = tg.merge(pre[["season", "team_id", *cols]], on=["season", "team_id"], how="left")
+    opp_cols = ["portal_net_stars", "recruit_4yr", "new_coach", "ap_points"]
+    opp = pre[["season", "team_id", *opp_cols]].rename(
+        columns={"team_id": "opp_id", **{c: f"opp_{c}" for c in opp_cols}}
+    )
+    tg = tg.merge(opp, on=["season", "opp_id"], how="left")
+    tg["recruit_4yr_diff"] = tg.recruit_4yr - tg.opp_recruit_4yr
+    tg["ap_points_diff"] = tg.ap_points - tg.opp_ap_points
+    return tg
+
+
 # ---------------------------------------------------------------- assemble
 
 
@@ -326,6 +425,7 @@ def build_features(
     talent: pd.DataFrame | None = None,
     returning: pd.DataFrame | None = None,
     teams: pd.DataFrame | None = None,
+    preseason: pd.DataFrame | None = None,
     **ridge_kwargs,
 ) -> pd.DataFrame:
     """Feature table: one row per FBS-vs-FBS team-game with target ``points``.
@@ -407,6 +507,8 @@ def build_features(
         tg = add_efficiency_features(tg, adjusted_stats(with_stats))
     if talent is not None and returning is not None and teams is not None:
         tg = add_priors(tg, talent, returning, teams)
+    if preseason is not None:
+        tg = add_preseason(tg, preseason)
     return tg.reset_index(drop=True)
 
 
@@ -437,6 +539,11 @@ FEATURE_SETS_V2: dict[str, list[str]] = {
     "priors": [
         "talent", "opp_talent", "talent_diff", "ret_ppa", "opp_ret_ppa", "ret_pass_ppa",
         "ret_rush_ppa", "ret_usage",
+    ],
+    "preseason": [
+        "portal_in", "portal_out", "portal_net_stars", "recruit_points", "recruit_4yr",
+        "new_coach", "opp_portal_net_stars", "opp_recruit_4yr", "opp_new_coach",
+        "recruit_4yr_diff", "ap_points", "opp_ap_points", "ap_points_diff",
     ],
 }  # fmt: skip
 
@@ -477,11 +584,22 @@ def build_all(raw_dir) -> pd.DataFrame:
         return pd.read_parquet(raw_dir / f"{name}.parquet")
 
     games = read("games")
+    teams = read("teams")
+    preseason = None
+    if all((raw_dir / f"{n}.parquet").exists() for n in ("portal", "recruiting", "coaches")):
+        fbs_ids = set(games.loc[games.home_fbs, "home_id"]) | set(
+            games.loc[games.away_fbs, "away_id"]
+        )
+        ap = read("preseason_ap") if (raw_dir / "preseason_ap.parquet").exists() else None
+        preseason = preseason_table(
+            read("portal"), read("recruiting"), read("coaches"), teams, fbs_ids, ap
+        )
     feats = build_features(
         games,
         advanced=read("advanced"),
         talent=read("talent"),
         returning=read("returning"),
-        teams=read("teams"),
+        teams=teams,
+        preseason=preseason,
     )
     return add_market_lines(feats, read("lines"), games)
