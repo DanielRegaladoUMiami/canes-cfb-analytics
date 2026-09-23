@@ -47,6 +47,13 @@ Findings (2015–2025, FBS vs FBS):
 Every family is added in steps, and each step must improve CV error to stay. That's how
 we'll see which features actually made the model better.
 
+**v1 results (score-only features, 2026-09-23):** ridge ratings take CV MAE from 11.1 to
+9.44. Elo, matchup and context add < 0.01. LightGBM finds no interactions (an additive
+model scores the same as deeper trees), and boosting on the ratings residual is best at
+9.43. The families that create real interactions (pace × efficiency, unit matchups,
+weather) need CFBD play-level data. See `docs/research/feature_engineering.md` and
+`docs/experiments/`.
+
 ## 3. Split
 
 Random 80/20 splits leak the future: the model would train on November and "predict"
@@ -65,12 +72,14 @@ down-weighting. Test that in CV.
 **Cross-validation = walk-forward by season** (expanding window):
 
 ```
-fold 1: train 2015–2018 → validate 2019
-fold 2: train 2015–2019 → validate 2020
-fold 3: train 2015–2020 → validate 2021
-fold 4: train 2015–2021 → validate 2022
-fold 5: train 2015–2022 → validate 2023
+fold 1: train 2016–2018 → validate 2019
+fold 2: train 2016–2019 → validate 2020
+fold 3: train 2016–2020 → validate 2021
+fold 4: train 2016–2021 → validate 2022
+fold 5: train 2016–2022 → validate 2023
 ```
+
+CV starts training in 2016 because 2015's features have no prior season to lean on.
 
 ## 4. Models
 

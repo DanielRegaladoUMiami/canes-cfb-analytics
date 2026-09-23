@@ -27,12 +27,15 @@ canes-cfb-analytics/
 ├── src/canes_cfb/          # shared code imported by notebooks
 │   ├── markets.py          # market × period registry: the single source of truth
 │   ├── espn.py             # ESPN games + quarter scores client (cached)
+│   ├── features.py         # as-of features: ridge ratings, Elo, matchup, context
+│   ├── validation.py       # time split + walk-forward CV
 │   └── paths.py            # data/notebook paths
 ├── scripts/
 │   └── make_notebooks.py   # generates notebook skeletons from the registry
 ├── data/                   # raw → interim → processed → predictions (git-ignored)
 ├── docs/
 │   ├── pipeline.md         # EDA findings, features, split, models, tuning, ensemble
+│   ├── research/           # feature-engineering research with sources
 │   ├── markets.md          # target definitions, sign conventions, OT rules
 │   ├── data_sources.md     # where each piece of data comes from
 │   └── experiments/        # one log entry per model version

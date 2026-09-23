@@ -9,7 +9,8 @@ Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
 - [ ] Get `CFBD_API_KEY` into `~/.zshrc` (#1)
 - [ ] Ingest full-game lines from CFBD (#3)
 - [ ] Find a source for half, quarter and team-total lines (#4)
-- [ ] Feature engineering: opponent-adjusted ratings, recency, priors, context (#5)
+- [x] Feature engineering v1 (score-only): ridge ratings, Elo, matchup, context + ablation (#5)
+- [ ] Feature engineering v2 (CFBD): pace × efficiency, unit matchups, talent priors, weather
 
 ## v0.2 — points per team model (full game)
 - [ ] Walk-forward CV + Optuna for linear, GLM, RF, XGBoost, LightGBM, CatBoost
@@ -30,3 +31,4 @@ Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
 ## Done
 - Repo created (2026-09-23)
 - ESPN ingestion + EDA (2026-09-23)
+- Feature engineering v1: ratings 11.1 → 9.44 CV MAE (2026-09-23)
