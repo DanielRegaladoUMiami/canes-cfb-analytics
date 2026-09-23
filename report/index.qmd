@@ -25,6 +25,7 @@ and winner (who scores more) all derive from the two predictions for a game.
 | Versus the market | The market is more accurate: **8.70** (opening line) and **8.59** (closing line). |
 | Interactions? | Small. The signal lives in one-variable curves and thresholds (regression to the mean, talent-gap tails, a returning-production threshold), not in crosses. |
 | Betting edge | Not proven. Two pre-registered rules are paper-traded in 2026: **A** (bet the model's side when its total differs from the opener by ≥ 4) and **B** (bet the under when the ratings expect a shootout, which went 55–60% under in every season 2021–2025). |
+| A dedicated totals model? | Tried (issue #10). The nonlinear features overfit; the one-line shootout rule held, so the model wasn't adopted. |
 | Real money? | **No.** A full season of paper results first. |
 
 ## How to read this book

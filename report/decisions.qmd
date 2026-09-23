@@ -17,6 +17,7 @@ explicitly. A project like this is only trustworthy if its mistakes are visible.
 | Market layer | Dropped | Keep | Spreads failed; the totals result wasn't using the model |
 | Real money | **No**; paper-trade two pre-registered rules through 2026 | Bet now | Edge not proven; the market is more accurate on average |
 | Weekly runs | GitHub Actions | Local cron, manual | Runs with the Mac off; commits give tamper-evident timestamps |
+| Totals model (#10) | **Not adopted**; keep rule B; skip A-vs-B conflicts | Adopt the nonlinear totals model | It overfit (2021–23 gains vanished in 2024–25); the one-line rule held |
 | Period lines (#4) | Build models now, buy lines later | Buy history now ($119) or forward only ($30/month) | See whether period models predict well first |
 
 : Main decisions. {#tbl-decisions}

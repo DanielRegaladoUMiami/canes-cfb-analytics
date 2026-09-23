@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np  # noqa: F401  (used by the chapters that exec this file)
 import pandas as pd
 
 ROOT = Path.cwd().parent if Path.cwd().name == "report" else Path.cwd()

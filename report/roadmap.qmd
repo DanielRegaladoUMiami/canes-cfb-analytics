@@ -4,7 +4,8 @@
 
 | Issue | What | Status |
 |---|---|---|
-| **#10** | **Totals model built on the nonlinear insights**: shootout flag, pace tail, talent-gap tails, low returning production, early season. The opening total is the base | Next |
+| #10 | Totals model on the nonlinear insights | **Done**: not adopted (overfit); conflicts skipped (@tbl-totals) |
+| — | **Grade 2026 paper picks weekly**; revisit rules at season end | Running (GitHub Action) |
 | #4 | Betting lines for halves, quarters and team totals | Decided: models first, lines later |
 | #8 | Weather (wind thresholds of about 10 and 15 mph; @fsh_wind) via the free Open-Meteo API | Backlog |
 | — | Winner probabilities from the predicted margin | Backlog |

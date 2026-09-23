@@ -38,6 +38,18 @@ def main() -> None:
     rows += [
         {"rule": r, "week": "total", **betting.summarize(g)} for r, g in graded.groupby("rule")
     ]
+    # Portfolio: A and B together, skipping games where they disagree (backtest 2021-2025:
+    # in those conflicts the under won only 51.5%, so neither side is worth betting).
+    sides = graded.groupby("game_id")["total_pick"].nunique()
+    portfolio = graded[graded.game_id.isin(sides[sides == 1].index)].drop_duplicates("game_id")
+    if len(portfolio):
+        rows.append(
+            {
+                "rule": "portfolio (A+B, no conflicts)",
+                "week": "total",
+                **betting.summarize(portfolio),
+            }
+        )
     table = pd.DataFrame(rows)
     pending = len(bets) - len(graded)
     md = [

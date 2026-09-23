@@ -24,7 +24,7 @@ Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
 - [x] Weekly grading script + GitHub Action (Wednesdays)
 - [x] Nonlinearity insights (SHAP + market lens): shootout-under effect; paper rule B
 - [x] Half/quarter team-points models (accuracy; no period lines yet)
-- [ ] Totals model built on the nonlinear insights (shootout, pace tail, talent tails, low returning production)
+- [x] Totals model on the nonlinear insights (#10): not adopted (overfit); rule B kept; A-vs-B conflicts skipped
 - [ ] Winner (moneyline) probabilities from predicted margin
 
 ## v0.3 — dedicated markets
