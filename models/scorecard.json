@@ -1,0 +1,201 @@
+{
+  "seasons": "2021-2025",
+  "games": 3943,
+  "winner": {
+    "games": 3770,
+    "model": {
+      "accuracy": 0.7010610079575597,
+      "auc": 0.7690921619293711,
+      "brier": 0.19246950906973767,
+      "log_loss": 0.564388790443748
+    },
+    "market": {
+      "accuracy": 0.7108753315649867,
+      "auc": 0.7825097616996841,
+      "brier": 0.18756928267093181,
+      "log_loss": 0.5550358064766899
+    }
+  },
+  "spread": {
+    "mae_margin_model": 12.736938404709553,
+    "mae_margin_market": 12.12211514075577,
+    "ats_vs_close": {
+      "win_rate": 0.4897959183673469,
+      "n": 3871
+    },
+    "ats_vs_open": {
+      "win_rate": 0.4983225806451613,
+      "n": 3875
+    }
+  },
+  "total": {
+    "mae_model": 12.943219540599943,
+    "mae_market": 12.538993152422014,
+    "ou_vs_close": {
+      "win_rate": 0.5016688061617458,
+      "n": 3895
+    },
+    "ou_vs_open": {
+      "win_rate": 0.5048618219037871,
+      "n": 3908
+    }
+  },
+  "team_total": {
+    "mae_model": 9.146135091813484,
+    "mae_market": 8.76740426071519
+  },
+  "periods": {
+    "1H": {
+      "mae_model": 6.403907801600824,
+      "mae_constant": 7.233632182211705
+    },
+    "2H": {
+      "mae_model": 6.216735384876564,
+      "mae_constant": 6.700435618741101
+    },
+    "Q1": {
+      "mae_model": 4.177882100057559,
+      "mae_constant": 4.471678078416583
+    },
+    "Q2": {
+      "mae_model": 4.749653142305404,
+      "mae_constant": 5.148727236199205
+    },
+    "Q3": {
+      "mae_model": 4.231625049917841,
+      "mae_constant": 4.490153003111772
+    },
+    "Q4": {
+      "mae_model": 4.3895017518843975,
+      "mae_constant": 4.411675314882254
+    }
+  },
+  "segments": {
+    "week_bucket": {
+      "Weeks 0-2": {
+        "games": 479.0,
+        "model": 13.5692,
+        "market": 11.8559,
+        "model_acc": 0.7265,
+        "market_acc": 0.7599,
+        "gap": 1.7132
+      },
+      "Weeks 3-4": {
+        "games": 540.0,
+        "model": 13.2997,
+        "market": 12.3329,
+        "model_acc": 0.7333,
+        "market_acc": 0.7593,
+        "gap": 0.9669
+      },
+      "Weeks 5-8": {
+        "games": 1075.0,
+        "model": 12.4138,
+        "market": 11.9533,
+        "model_acc": 0.7079,
+        "market_acc": 0.7163,
+        "gap": 0.4605
+      },
+      "Weeks 9+": {
+        "games": 1635.0,
+        "model": 12.453,
+        "market": 12.2453,
+        "model_acc": 0.715,
+        "market_acc": 0.7193,
+        "gap": 0.2077
+      },
+      "Bowls/CFP": {
+        "games": 214.0,
+        "model": 13.2465,
+        "market": 12.0935,
+        "model_acc": 0.6075,
+        "market_acc": 0.6542,
+        "gap": 1.1531
+      }
+    },
+    "spread_bucket": {
+      "Pick'em to 3": {
+        "games": 827.0,
+        "model": 12.2006,
+        "market": 11.8767,
+        "model_acc": 0.5103,
+        "market_acc": 0.526,
+        "gap": 0.324
+      },
+      "3.5 to 7": {
+        "games": 1028.0,
+        "model": 12.3733,
+        "market": 11.7393,
+        "model_acc": 0.6128,
+        "market_acc": 0.643,
+        "gap": 0.634
+      },
+      "7.5 to 14": {
+        "games": 1015.0,
+        "model": 12.8821,
+        "market": 12.4416,
+        "model_acc": 0.7557,
+        "market_acc": 0.7665,
+        "gap": 0.4405
+      },
+      "14.5 to 21": {
+        "games": 570.0,
+        "model": 13.0085,
+        "market": 12.5728,
+        "model_acc": 0.8877,
+        "market_acc": 0.8895,
+        "gap": 0.4357
+      },
+      "21.5+": {
+        "games": 503.0,
+        "model": 13.7613,
+        "market": 12.1526,
+        "model_acc": 0.9523,
+        "market_acc": 0.9523,
+        "gap": 1.6087
+      }
+    },
+    "season": {
+      "2021": {
+        "games": 770.0,
+        "model": 13.3372,
+        "market": 12.5487,
+        "model_acc": 0.7117,
+        "market_acc": 0.7273,
+        "gap": 0.7885
+      },
+      "2022": {
+        "games": 776.0,
+        "model": 12.6952,
+        "market": 12.0168,
+        "model_acc": 0.6972,
+        "market_acc": 0.7242,
+        "gap": 0.6785
+      },
+      "2023": {
+        "games": 792.0,
+        "model": 12.5638,
+        "market": 12.1398,
+        "model_acc": 0.7298,
+        "market_acc": 0.7311,
+        "gap": 0.424
+      },
+      "2024": {
+        "games": 797.0,
+        "model": 12.7393,
+        "market": 12.0985,
+        "model_acc": 0.7001,
+        "market_acc": 0.7077,
+        "gap": 0.6408
+      },
+      "2025": {
+        "games": 808.0,
+        "model": 12.3723,
+        "market": 11.8227,
+        "model_acc": 0.7166,
+        "market_acc": 0.7364,
+        "gap": 0.5496
+      }
+    }
+  }
+}

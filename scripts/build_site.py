@@ -286,6 +286,9 @@ def main() -> None:
             "reliability": cal["win_reliability"],
         },
         "checks": checks,
+        "scorecard": json.loads((ROOT / "models" / "scorecard.json").read_text())
+        if (ROOT / "models" / "scorecard.json").exists()
+        else None,
         "games": records,
     }
     template = (SITE / "template.html").read_text()

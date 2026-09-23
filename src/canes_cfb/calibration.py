@@ -34,8 +34,8 @@ def out_of_sample_games(features: pd.DataFrame, games: pd.DataFrame, recipe_para
         test["pred"] = fit_predict(SPECS["random_forest"], recipe_params, train, test)
         parts.append(test)
     rows = pd.concat(parts)
-    keep = ["game_id", "team_id", "pred", "season", "week", "spread_open", "spread_close",
-            "total_open", "total_close", "exp_total"]  # fmt: skip
+    keep = ["game_id", "team_id", "pred", "season", "season_type", "week", "spread_open",
+            "spread_close", "total_open", "total_close", "exp_total"]  # fmt: skip
     return betting.to_games(rows[keep], games)
 
 
