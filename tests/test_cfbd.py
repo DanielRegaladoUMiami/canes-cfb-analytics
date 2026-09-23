@@ -38,3 +38,14 @@ def test_missing_key_fails_loudly(monkeypatch, tmp_path):
 def test_cache_path_never_contains_the_key(monkeypatch):
     monkeypatch.setenv("CFBD_API_KEY", "secret-value")
     assert "secret" not in str(cfbd._cache_path("/lines", {"year": 2024}))
+
+
+def test_clean_moneylines_blanks_swapped_lines():
+    import pandas as pd
+
+    lines = pd.DataFrame(
+        {"spread_close": [-12.0, -12.0], "home_ml": [-520.0, 375.0], "away_ml": [375.0, -520.0]}
+    )
+    clean = cfbd.clean_moneylines(lines)
+    assert clean.home_ml.iloc[0] == -520  # home favored by 12 and priced as favorite: kept
+    assert pd.isna(clean.home_ml.iloc[1])  # home favored by 12 but priced as underdog: swapped

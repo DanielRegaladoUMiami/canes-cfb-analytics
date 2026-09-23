@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 import numpy as np
 import pandas as pd
 
-from canes_cfb import betting, calibration
+from canes_cfb import betting, calibration, cfbd
 from canes_cfb.paths import PREDICTIONS, RAW, ROOT
 from canes_cfb.periods import PERIODS
 
@@ -104,7 +104,9 @@ def main() -> None:
     g = pd.read_parquet(latest)
     cal = json.loads((ROOT / "models" / "calibration.json").read_text())
     games = pd.read_parquet(RAW / "games.parquet")
-    lines = pd.read_parquet(RAW / "lines.parquet")[["game_id", "home_ml", "away_ml"]]
+    lines = cfbd.clean_moneylines(pd.read_parquet(RAW / "lines.parquet"))[
+        ["game_id", "home_ml", "away_ml"]
+    ]
     g = g.merge(lines, on="game_id", how="left")
     season, week = int(g.season.iloc[0]), int(g.week.iloc[0])
     g = g.merge(games[["game_id", "home_id", "away_id"]], on="game_id", how="left")

@@ -27,3 +27,12 @@
 2. Bowls: opt-outs, transfers, days of rest, bowl tier/motivation.
 3. Blowouts: game-script features (starters pulled, garbage time) and a heavier-tailed
    margin model.
+
+## Update (same day): swapped moneylines and moneyline betting
+- 81 of 3,770 FBS games (2.1%, mostly 2021–2023, older providers) had home/away
+  moneylines swapped relative to the spread. They faked a +12% to +42% moneyline ROI.
+  `cfbd.clean_moneylines` now blanks any moneyline whose de-vigged probability is more
+  than 15 points from what the closing spread implies.
+- Clean numbers, 2021–2025: winner accuracy model 70.8% vs books 71.9%; AUC 0.773 vs
+  0.793. Betting the model's side on the moneyline whenever it's more confident than
+  the books: 45.0% wins, **−4.5% ROI** (−5% to −10% at larger disagreements). No edge.

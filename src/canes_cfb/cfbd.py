@@ -230,3 +230,27 @@ def load_preseason_ap(seasons: list[int]) -> pd.DataFrame:
                     rows.append({"season": s, "team_id": r["teamId"], "ap_points": r["points"],
                                  "ap_rank": r["rank"]})  # fmt: skip
     return pd.DataFrame(rows)
+
+
+def clean_moneylines(lines: pd.DataFrame, max_gap: float = 0.15) -> pd.DataFrame:
+    """Blank moneylines that contradict the spread.
+
+    Some books' moneylines come with home and away swapped (about 2% of 2021-2025 FBS
+    games): the moneyline favorite is the spread underdog. Left in, they fake huge
+    moneyline profits. A line is kept only if its de-vigged home win probability is within
+    ``max_gap`` of the probability the closing spread implies (margin SD ~14 points).
+    """
+    from scipy.stats import norm
+
+    out = lines.copy()
+
+    def implied(ml):
+        return np.where(ml < 0, -ml / (-ml + 100), 100 / (ml + 100))
+
+    with np.errstate(divide="ignore", invalid="ignore"):  # np.where evaluates both branches
+        h, a = implied(out.home_ml.to_numpy(float)), implied(out.away_ml.to_numpy(float))
+    p_ml = h / (h + a)
+    p_spread = norm.cdf(-out.spread_close.to_numpy(float) / 14.0)
+    bad = np.abs(p_ml - p_spread) > max_gap
+    out.loc[bad, ["home_ml", "away_ml"]] = np.nan
+    return out

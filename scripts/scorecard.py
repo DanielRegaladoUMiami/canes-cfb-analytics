@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 
-from canes_cfb import calibration
+from canes_cfb import calibration, cfbd
 from canes_cfb.modeling import FEATURES
 from canes_cfb.paths import PROCESSED, RAW, ROOT
 from canes_cfb.periods import PERIODS, add_period_shares, add_period_targets, fit_predict_period
@@ -51,7 +51,9 @@ def main() -> None:
     cal = json.loads((ROOT / "models" / "calibration.json").read_text())
     features = pd.read_parquet(PROCESSED / "team_games.parquet")
     games = pd.read_parquet(RAW / "games.parquet")
-    lines = pd.read_parquet(RAW / "lines.parquet")[["game_id", "home_ml", "away_ml"]]
+    lines = cfbd.clean_moneylines(pd.read_parquet(RAW / "lines.parquet"))[
+        ["game_id", "home_ml", "away_ml"]
+    ]
 
     g = calibration.out_of_sample_games(features, games, params["random_forest"]["params"])
     g = g.merge(lines, on="game_id", how="left")
