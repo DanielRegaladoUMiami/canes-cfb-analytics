@@ -1,0 +1,130 @@
+# Models, tuning and the one-shot test {#sec-modeling}
+
+```{python}
+exec(open("_common.py").read())
+import json
+params = json.loads((ROOT / "models" / "team_points_params.json").read_text())
+recipe = json.loads((ROOT / "models" / "team_points_final.json").read_text())
+```
+
+## Splitting by time
+
+A random 80/20 split leaks the future: the model would train on November and "predict"
+September, already knowing how the season turned out. So every split is **by time**:
+
+```{python}
+#| label: fig-split
+#| fig-cap: "Train, validation and test by season, and the walk-forward cross-validation folds inside the training window."
+fig, ax = plt.subplots(figsize=(6.5, 2.8))
+seasons = list(range(2016, 2026))
+rows = [("fold 1", 2016, 2018, 2019), ("fold 2", 2016, 2019, 2020), ("fold 3", 2016, 2020, 2021),
+        ("fold 4", 2016, 2021, 2022), ("fold 5", 2016, 2022, 2023)]
+for k, (name, a, b, v) in enumerate(rows):
+    y = len(rows) - k + 1
+    ax.barh(y, b - a + 1, left=a - 0.5, color=BLUE, height=0.6)
+    ax.barh(y, 1, left=v - 0.5, color=AQUA, height=0.6)
+    ax.text(2014.3, y, name, va="center", fontsize=8, color=INK_2)
+ax.barh(0.8, 8, left=2015.5, color=BLUE, height=0.6)
+ax.barh(0.8, 1, left=2023.5, color=ORANGE, height=0.6)
+ax.barh(0.8, 1, left=2024.5, color=INK, height=0.6)
+ax.text(2019.5, 0.8, "train 2016–2023", ha="center", va="center", color="white", fontsize=8)
+ax.text(2024, 0.8, "val", ha="center", va="center", color="white", fontsize=7)
+ax.text(2025, 0.8, "test", ha="center", va="center", color="white", fontsize=7)
+ax.set_xticks(seasons); ax.set_yticks([]); ax.set_xlim(2014.2, 2025.6)
+ax.spines["left"].set_visible(False)
+ax.tick_params(axis="x", labelsize=8); ax.grid(False)
+ax.text(2021.7, 6.9, "blue = train, green = validate", fontsize=8, color=INK_2)
+plt.tight_layout(); plt.show()
+```
+
+| Set | Seasons | Used for |
+|---|---|---|
+| Train | 2016–2023 (2015 only feeds features) | Fitting; cross-validation and Optuna run only here |
+| Validation | 2024 | Choosing the final model and ensemble |
+| Test | 2025 | Touched **once**, at the end: the honest number |
+| Production | 2026 | Weekly predictions |
+
+: Data splits. {#tbl-splits}
+
+Cross-validation is **walk-forward**: train on every season before, validate on the next,
+for 2019 through 2023. Each fold weighs the same.
+
+## The model zoo and tuning
+
+Every model predicts points per team. Tree models learn the **residual of the ratings**
+($\text{points} - \text{exp\_points}$), the shape that won the ablations; linear models
+predict points directly. Each was tuned with Optuna's TPE sampler [@akiba_optuna],
+minimizing walk-forward MAE, starting from hand-picked defaults.
+
+::: {.callout-note}
+## How tuning and cross-validation fit together
+
+For **each of the six models**, Optuna proposes a set of hyperparameters (one *trial*).
+That trial is scored with **walk-forward cross-validation**: the model is trained on the
+seasons before 2019 and validated on 2019, retrained through 2019 and validated on 2020,
+and so on through 2023. The trial's score is the average of those five errors. Optuna
+uses the scores to propose better trials (15 to 60 per model). The best trial per model
+is saved to `models/team_points_params.json`.
+
+Only after that are the six tuned models combined and compared on 2024, and only the
+final choice is tested on 2025. The half and quarter models reuse LightGBM's tuned
+parameters rather than being tuned separately.
+:::
+
+```{python}
+#| label: tbl-tuning
+#| tbl-cap: "Optuna results (mean per-season CV MAE, 2019–2023). Read live from models/team_points_params.json."
+t = pd.DataFrame(params).T[["cv_mae_defaults", "cv_mae", "trials"]]
+t.columns = ["defaults", "tuned", "trials"]
+t["gain"] = t.defaults - t.tuned
+t = t.sort_values("tuned")
+t[["defaults", "tuned", "gain"]] = t[["defaults", "tuned", "gain"]].map(lambda v: f"{v:.3f}")
+t.astype({"trials": int})
+```
+
+Every model lands within ~0.05 points of the others, and their errors are almost
+perfectly correlated (≥ 0.98). They see the same information and make the same mistakes,
+so an ensemble can only help a little. Ridge's best $\alpha$ (978) sits at the edge of
+its search range (up to 1000), which is noted but doesn't change the conclusion.
+
+## Ensembles, validation and the final pick
+
+Out-of-fold predictions from the five CV folds fed three ensembles: a simple average,
+the average of the top 3, and **stacking** with non-negative least squares. The stacking
+weights (ridge 0.45, XGBoost 0.33, Poisson 0.10, LightGBM 0.06, random forest 0.04,
+CatBoost 0) were fit on the same out-of-fold rows, so their CV number is slightly
+optimistic. That's why the final choice is made on 2024.
+
+| Model | OOF 2019–23 (pooled) | Validation 2024 | Test 2025 |
+|---|---|---|---|
+| **Random forest (final: best on 2024)** | 9.275 | **9.081** | **8.940** |
+| Stacking (NNLS) | 9.200 | 9.097 | |
+| Average of all six | 9.212 | 9.085 | |
+| XGBoost (best in CV) | 9.236 | 9.133 | |
+| Market: opening line | | 8.869 | 8.696 |
+| Market: closing line | | 8.861 | 8.594 |
+
+: Model selection and the one-shot test (copied from the experiment log). {#tbl-test}
+
+The final recipe, `{python} recipe["final"]`, won 2024 by a margin that's within noise.
+Any of the top candidates would have been defensible. The **2025 test was run once**, with
+everything frozen beforehand.
+
+**Verdict on accuracy:** the market is better by ~0.25 points per team, both at the open
+and at the close.
+
+## The market layer, and why it was dropped
+
+Opening lines only exist from 2021, too few seasons to train a full model against the
+market. So the points model stays market-blind, and a tiny logistic regression (inputs:
+the edge vs the opener, the edge × early season, and the size of the line) was fit on
+2021–2023 to learn *when* to trust the model's disagreement with the opener.
+
+- **Spreads:** 47–49% in the 2025 test. It doesn't work.
+- **Totals:** 55.7% in 2025 at $p \ge 0.5$. But its coefficient on the model's edge came
+  out **negative**, so it wasn't using the model at all; it mostly bet unders on high
+  totals. That was first read as a pure base-rate artifact of an under-heavy 2025. The
+  nonlinearity analysis later showed it's partly a stable effect (@sec-nonlinearity),
+  which is now a separate, explicit rule.
+
+The layer was dropped from the weekly card. Its useful part lives on as rule B.

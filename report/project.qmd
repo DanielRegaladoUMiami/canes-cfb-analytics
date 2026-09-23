@@ -1,0 +1,90 @@
+# The project and the repository {#sec-project}
+
+## Goal and scope
+
+The request that started it: a repository with **one folder per thing we predict**,
+each holding Jupyter notebooks, covering:
+
+- the **winner** of each game,
+- the **spread** (point difference),
+- the **total** points of the game,
+- the **total points of each team**,
+- and spread and total **by halves and quarters**.
+
+It lives at `github.com/DanielRegaladoUMiami/canes-cfb-analytics` (public, Apache 2.0).
+It's a separate project from `cfb-canes-analytics`, an earlier repository that prices
+full-game totals against Kalshi and Polymarket. This one benchmarks against sportsbook
+lines only.
+
+## Markets and periods
+
+Every (market, period) pair is registered in one place, `src/canes_cfb/markets.py`, and
+the notebook tree is generated from it by `scripts/make_notebooks.py`.
+
+| Market | Folder | Full game | 1H | 2H | Q1–Q4 |
+|---|---|:-:|:-:|:-:|:-:|
+| Winner (moneyline) | `notebooks/01_winner` | ✓ | | | |
+| Spread | `notebooks/02_spread` | ✓ | ✓ | ✓ | ✓ |
+| Game total | `notebooks/03_total` | ✓ | ✓ | ✓ | ✓ |
+| Team totals | `notebooks/04_team_total` | ✓ | ✓ | ✓ | |
+
+: The market registry: 18 model notebooks. {#tbl-registry}
+
+### Conventions
+
+Everything is written from the **home team's perspective**:
+
+$$
+\text{margin} = \text{home points} - \text{away points}, \qquad
+\text{home covers} \iff \text{margin} + \text{spread} > 0,
+$$
+
+where the spread is the home team's line (negative means home is favored). A game ends
+in a push when $\text{margin} + \text{spread} = 0$.
+
+Periods follow standard US sportsbook rules: quarters are **regulation only**,
+$1H = Q1 + Q2$, and $2H = Q3 + Q4 + OT$, so that $1H + 2H$ equals the full game.
+
+## Repository layout
+
+```
+canes-cfb-analytics/
+├── notebooks/
+│   ├── 00_data/          ingest (ESPN, CFBD) → EDA → features → nonlinearity insights
+│   ├── 01_winner/ 02_spread/ 03_total/ 04_team_total/
+│   └── 99_evaluation/    backtest against the lines
+├── src/canes_cfb/        shared, tested code (every notebook imports it)
+│   ├── espn.py cfbd.py           data clients with on-disk caches
+│   ├── features.py periods.py    as-of features
+│   ├── modeling.py validation.py market.py betting.py
+│   └── markets.py paths.py
+├── scripts/              make_notebooks · tune_team_points · predict_week · grade_paper
+├── models/               tuned parameters + final recipe (JSON)
+├── paper_trading/        pre-registered picks and their graded results
+├── docs/                 pipeline, market rules, research, experiment logs
+├── report/               this book (Quarto)
+├── tests/                34 tests, including leakage tests
+└── .github/workflows/    weekly automation
+```
+
+## Tooling and working rules
+
+| Tool / rule | Why |
+|---|---|
+| **uv** for Python and dependencies (`pyproject.toml`, `uv.lock` committed) | Reproducible environments on any machine |
+| **ruff** (lint + format) and **nbstripout** as pre-commit hooks | Consistent code; notebooks never carry outputs or data into git |
+| Logic reused by two or more notebooks moves into `src/` **with a test** | Every model is evaluated the same way |
+| **As-of features only**, splits **by time**, the **closing line** as benchmark | Honest evaluation (@sec-features, @sec-modeling) |
+| Issues + milestones + `ROADMAP.md` + experiment logs | Lightweight tracking; decisions live in the repo, not in chat |
+| Conventional commits, sole author | Clean history |
+
+Two operational details are worth knowing:
+
+- **iCloud and virtual environments.** The repository sits under an iCloud-synced
+  Desktop. iCloud marks files as hidden, and Python then ignores the environment's
+  `.pth` files, so `import canes_cfb` fails with a phantom `ModuleNotFoundError`. The fix:
+  `.venv` is a symlink to `.venv.nosync/`, a folder iCloud never syncs.
+- **Secrets.** The CollegeFootballData API key lives in `~/.zshrc` locally and in a
+  GitHub Actions secret for automation. The client reads it from the environment and
+  never writes it to disk. So far, each commit was checked by hand to confirm the key
+  isn't in any file (not yet an automated hook).

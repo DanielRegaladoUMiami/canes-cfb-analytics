@@ -1,0 +1,38 @@
+# What's next {#sec-roadmap}
+
+## Open work
+
+| Issue | What | Status |
+|---|---|---|
+| **#10** | **Totals model built on the nonlinear insights**: shootout flag, pace tail, talent-gap tails, low returning production, early season. The opening total is the base | Next |
+| #4 | Betting lines for halves, quarters and team totals | Decided: models first, lines later |
+| #8 | Weather (wind thresholds of about 10 and 15 mph; @fsh_wind) via the free Open-Meteo API | Backlog |
+| — | Winner probabilities from the predicted margin | Backlog |
+| — | Real-money decision after a full season of paper results | 2026 season end |
+
+: Open work. {#tbl-open}
+
+## Period lines (#4): options and costs
+
+The only source found with historical period and team-total lines is The Odds API
+[@odds_api]. Its market keys include `spreads_h1`, `totals_q1` … `q4`, and
+`team_totals_h1`. Historical data for these "additional markets" starts on **May 3,
+2023** and requires a paid plan.
+
+| Option | Cost | Gives |
+|---|---|---|
+| History, one month of the 5M-credit plan | $119 once | 2023–2025 seasons: about 2,400 games × 15 markets × 10 credits ≈ 360K credits for one snapshot per game |
+| Forward only, 20K-credit plan | $30/month | Weekly capture from now on (about 900 credits/week) |
+| Free plan (500 credits/month) | $0 | Not enough for weekly capture |
+
+: Options for period lines. {#tbl-odds}
+
+One unknown: how many college games actually get quarter lines. Books tend to post them
+only for bigger games. That would be checked on the first pull.
+
+## Should this become a website?
+
+This book renders as both a PDF and a website from the same source. Publishing the HTML
+version on GitHub Pages costs nothing extra. The next useful step would be a small page
+that shows the weekly card and the running paper record, updated by the same weekly
+Action.

@@ -1,0 +1,41 @@
+# Summary {.unnumbered}
+
+This book documents everything built in **canes-cfb-analytics** so far: the data, the
+features, the models, how they were evaluated, what worked, what didn't, and the
+mistakes that were caught and corrected along the way. It's written to be read top to
+bottom by someone who wasn't there, including future me.
+
+## What the project does
+
+It predicts FBS college football games (winner, spread, total, team totals, plus halves
+and quarters) and asks one question of every model: **does it know something the
+betting market doesn't?** Accuracy alone isn't enough. A model can be accurate and
+still lose money if the market is more accurate.
+
+The core model predicts **points per team**. Spread (the difference), total (the sum)
+and winner (who scores more) all derive from the two predictions for a game.
+
+## Key results (as of 2026-09-23)
+
+| Question | Answer |
+|---|---|
+| Enough data? | Yes. 10,630 games (2015–2026), 16,642 FBS-vs-FBS team-game rows for 2015–2025, points by quarter for every game. |
+| Best single feature | **Opponent-adjusted ratings** (ridge regression refit every week): error falls from 11.1 to 9.44 points per team. |
+| Best model | Tuned random forest on the ratings' residual. Test error (2025): **8.94** points per team. |
+| Versus the market | The market is more accurate: **8.70** (opening line) and **8.59** (closing line). |
+| Interactions? | Small. The signal lives in one-variable curves and thresholds (regression to the mean, talent-gap tails, a returning-production threshold), not in crosses. |
+| Betting edge | Not proven. Two pre-registered rules are paper-traded in 2026: **A** (bet the model's side when its total differs from the opener by ≥ 4) and **B** (bet the under when the ratings expect a shootout, which went 55–60% under in every season 2021–2025). |
+| Real money? | **No.** A full season of paper results first. |
+
+## How to read this book
+
+- **Foundations** covers the repository, the data and what the data looks like.
+- **Features and models** covers feature engineering, the search for nonlinearities, the
+  model zoo, tuning, the one-shot test, and halves and quarters.
+- **Betting** covers how predictions become bets, how they're graded, the weekly
+  automation, the decision log (including corrections), and what's next.
+- The appendices explain how to reproduce everything and define the jargon.
+
+Every number in a table or figure comes from code run against the data, not typed in by
+hand, except where a chapter says a table is copied from an experiment log (the slow
+experiments: tuning and cross-validated ablations).

@@ -1,0 +1,108 @@
+# What the data looks like {#sec-eda}
+
+```{python}
+exec(open("_common.py").read())
+g = games()
+done = g[g.completed & (g.season <= 2025)].copy()
+done["total"] = done.home_points + done.away_points
+done["margin"] = done.home_points - done.away_points
+fbs = done[done.home_fbs & done.away_fbs]
+team_points = pd.concat([fbs.home_points, fbs.away_points])
+```
+
+## Is there enough data?
+
+```{python}
+#| label: tbl-volume
+#| tbl-cap: "Completed games by season, 2015–2025."
+vol = pd.DataFrame({
+    "games": done.groupby("season").size(),
+    "FBS vs FBS": fbs.groupby("season").size(),
+    "vs FCS": done[done.home_fbs ^ done.away_fbs].groupby("season").size(),
+})
+vol["team rows"] = vol["FBS vs FBS"] * 2
+vol.loc["total"] = vol.sum()
+vol
+```
+
+The first model predicts **each team's points**, so every game gives two rows:
+`{python} f"{len(fbs):,}"` FBS-vs-FBS games become `{python} f"{2*len(fbs):,}"` training
+rows. That's plenty for linear models and enough for regularized gradient boosting, but
+it isn't big data. **Feature quality matters more than model complexity**, and that
+turned out to be the central lesson of the project.
+
+Games against FCS teams (`{python} f"{int(vol.loc['total','vs FCS']):,}"`, average
+margin ~31 points) are excluded from training. They're lopsided and not what we bet on.
+2020 is small because of COVID cancellations.
+
+## The target
+
+```{python}
+#| label: fig-targets
+#| fig-cap: "Distribution of team points, game totals and home margins (FBS vs FBS, 2015–2025)."
+fig, axes = plt.subplots(1, 3, figsize=(6.5, 2.4), sharey=False)
+axes[0].hist(team_points, bins=range(0, 80, 3), color=BLUE)
+axes[0].set_title("Team points")
+axes[1].hist(fbs.total, bins=range(0, 130, 5), color=BLUE)
+axes[1].set_title("Game total")
+axes[2].hist(fbs.margin.clip(-60, 60), bins=range(-60, 61, 3), color=BLUE)
+axes[2].set_title("Home margin")
+for ax in axes:
+    ax.set_yticks([]); ax.grid(False)
+plt.tight_layout(); plt.show()
+```
+
+Team points average `{python} f"{team_points.mean():.1f}"` with a standard deviation of
+`{python} f"{team_points.std():.1f}"`. A model that always guesses the average misses by
+about 11 points. That's the floor every model has to clear.
+
+```{python}
+#| label: fig-key-numbers
+#| fig-cap: "Share of games decided by exactly N points. Field goals (3) and touchdowns (7) dominate."
+share = fbs.margin.abs().value_counts(normalize=True).sort_index().loc[1:21] * 100
+fig, ax = plt.subplots(figsize=(6.5, 2.4))
+colors = [ORANGE if n in (3, 7) else BLUE for n in share.index]
+ax.bar(share.index, share.values, color=colors, width=0.7)
+ax.set_xticks(range(1, 22)); ax.set_ylabel("% of games")
+ax.text(3, share.loc[3] + 0.3, "3", ha="center", fontsize=8, color=INK)
+ax.text(7, share.loc[7] + 0.3, "7", ha="center", fontsize=8, color=INK)
+bar_ends(ax); plt.show()
+```
+
+Margins cluster on **3 and 7**, so a normal distribution around a predicted margin isn't
+quite right when converting it into a probability of covering.
+
+## Scoring is not stable over time
+
+```{python}
+#| label: fig-trend
+#| fig-cap: "Average game total by season (FBS vs FBS). The 2023 clock rule cut plays per game."
+trend = fbs.groupby("season").total.mean()
+fig, ax = plt.subplots(figsize=(6.5, 2.6))
+ax.plot(trend.index, trend.values, color=BLUE, marker="o", markersize=5)
+for x, v in trend.items():
+    if x in (2015, 2023, 2025):
+        ax.annotate(f"{v:.1f}", (x, v), textcoords="offset points", xytext=(0, 7),
+                    ha="center", fontsize=8, color=INK_2)
+ax.set_ylabel("points"); bar_ends(ax); plt.show()
+```
+
+The average total fell by about 5 points between 2015 and 2025. The 2023 rule that keeps
+the clock running after first downs cut plays. Two consequences for features:
+**normalize by the season's league average** instead of using raw points, and **weigh
+recent seasons more** (recency decay in the ratings, @sec-features).
+
+## Home field and quarters
+
+```{python}
+hfa = fbs.groupby("neutral_site").margin.mean()
+q = {f"Q{i}": (fbs[f"home_q{i}"] + fbs[f"away_q{i}"]).mean() for i in range(1, 5)}
+ot_share = ((fbs.home_ot + fbs.away_ot) > 0).mean() * 100
+```
+
+- **Home field:** home teams win by `{python} f"{hfa.loc[False]:.1f}"` points at their
+  own stadium and `{python} f"{hfa.loc[True]:.1f}"` at neutral sites.
+- **Quarters are uneven:** Q1 `{python} f"{q['Q1']:.1f}"`, Q2 `{python} f"{q['Q2']:.1f}"`,
+  Q3 `{python} f"{q['Q3']:.1f}"`, Q4 `{python} f"{q['Q4']:.1f}"` points per game. Q2 is the
+  highest-scoring quarter because of end-of-half drives. Overtime happens in
+  `{python} f"{ot_share:.1f}"`% of games.

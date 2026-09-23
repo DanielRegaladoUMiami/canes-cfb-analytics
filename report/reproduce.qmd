@@ -1,0 +1,49 @@
+# Reproducing everything {#sec-reproduce}
+
+## Environment
+
+```bash
+git clone https://github.com/DanielRegaladoUMiami/canes-cfb-analytics
+cd canes-cfb-analytics
+mkdir .venv.nosync && ln -s .venv.nosync .venv   # only if the folder is iCloud-synced
+uv sync
+uv run pre-commit install
+uv run pytest                                    # all tests, offline
+```
+
+Put the CollegeFootballData key in your shell profile, never in a file inside the repo:
+
+```bash
+export CFBD_API_KEY=...          # in ~/.zshrc
+```
+
+## Order of operations
+
+Run these in order. Notebooks live in `notebooks/`; scripts in `scripts/`.
+
+1. **Games and quarter scores:** `00_data/01_ingest_games.ipynb` → `data/raw/games.parquet`
+2. **Lines, efficiency, priors:** `00_data/02_ingest_lines.ipynb` → `data/raw/*.parquet`
+3. **EDA:** `00_data/03_eda.ipynb`
+4. **Features:** `00_data/04_feature_engineering.ipynb` → `data/processed/team_games.parquet`
+5. **Nonlinearity insights:** `00_data/05_nonlinearity_insights.ipynb`
+6. **Tuning** (30–60 min): `uv run python scripts/tune_team_points.py` → `models/team_points_params.json`
+7. **Ensemble, validation, one-shot test:** `04_team_total/full_game.ipynb` → `models/team_points_final.json`
+8. **Halves and quarters:** `04_team_total/periods.ipynb`
+9. **Weekly card:** `uv run python scripts/predict_week.py` → `data/predictions/`, `paper_trading/`
+10. **Grading:** `uv run python scripts/grade_paper.py` → `paper_trading/2026_results.csv`, `2026_summary.md`
+
+The 2025 test in step 7 is meant to be run once. Re-running it reproduces the same
+numbers (the seeds are fixed), but changing the model after looking at it would make it
+no longer a test.
+
+## Rendering this book
+
+```bash
+cd report
+export QUARTO_PYTHON=$(cd .. && pwd)/.venv/bin/python
+quarto render            # HTML (report/_book/) and PDF
+```
+
+Computations are frozen (`_freeze/`), so the book re-renders without the data. To
+recompute a chapter after the data changes, delete its folder under `_freeze/` and
+render with the data present.

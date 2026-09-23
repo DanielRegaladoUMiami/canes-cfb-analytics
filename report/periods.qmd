@@ -1,0 +1,91 @@
+# Halves and quarters {#sec-periods}
+
+```{python}
+exec(open("_common.py").read())
+import json
+from canes_cfb.modeling import FEATURES
+from canes_cfb.periods import PERIODS, add_period_shares, add_period_targets, fit_predict_period
+from canes_cfb.validation import walk_forward
+
+lgb_params = json.loads((ROOT / "models" / "team_points_params.json").read_text())["lightgbm"]["params"]
+f = add_period_shares(add_period_targets(features()))
+data = f[f.completed & ~f.shortened & f.season.between(2016, 2023)].reset_index(drop=True)
+```
+
+Targets: each team's points in 1H, 2H (with OT), and Q1–Q4 (regulation). A natural
+decomposition:
+
+$$
+\text{points}_{p} \;\approx\; \text{exp\_points} \times \text{share}_p,
+$$
+
+where $\text{share}_p$ is the fraction of a team's points scored in period $p$. Two
+versions of the share were tried: the **league's** share, and each team's own **as-of**
+share (exponentially weighted over prior games, blended with the share the opponent's
+defense usually allows). The final model uses the league share as its base, with
+LightGBM correcting the residual.
+
+## Accuracy by period
+
+```{python}
+#| label: tbl-periods
+#| tbl-cap: "Walk-forward CV MAE (points per team, 2019–2023) by period."
+rows = []
+for p in PERIODS:
+    y = data[f"pts_{p.value}"].to_numpy()
+    errs = {"constant": [], "exp × league share": [], "exp × team share": [], "model": []}
+    for _, tr, va in walk_forward(data):
+        share = y[tr].sum() / data.points.to_numpy()[tr].sum()
+        league = data.exp_points.to_numpy() * share
+        team_exp = data[f"exp_pts_{p.value}"]
+        team = np.where(team_exp.isna(), league, team_exp)
+        errs["constant"].append(np.abs(y[va] - y[tr].mean()).mean())
+        errs["exp × league share"].append(np.abs(y[va] - league[va]).mean())
+        errs["exp × team share"].append(np.abs(y[va] - team[va]).mean())
+        pred = fit_predict_period(p, data.iloc[tr], data.iloc[va], FEATURES, lgb_params)
+        errs["model"].append(np.abs(y[va] - pred).mean())
+    rows.append({"period": p.value, "mean points": y.mean(), **{k: np.mean(v) for k, v in errs.items()}})
+pt = pd.DataFrame(rows).set_index("period")
+pt["model vs constant %"] = 100 * (pt["model"] / pt["constant"] - 1)
+pt.round(2)
+```
+
+- The model beats the constant in every period, by about 12% in 1H and very little in Q4.
+- **Team-specific scoring shares are worse than the league share.** How a team splits
+  its points across quarters is mostly noise, and it regresses to the league pattern.
+- **Q4 is special**: expected points × share does *worse* than a constant.
+
+## Game script: why Q4 doesn't follow team strength
+
+```{python}
+#| label: fig-game-script
+#| fig-cap: "Share of a team's regulation points scored in Q4, by the team's expected margin (2019–2023)."
+recent = data[data.season.between(2019, 2023)].copy()
+bins = [-60, -17, -10, -3, 3, 10, 17, 60]
+labels = ["≤ −17", "−17 to −10", "−10 to −3", "−3 to 3", "3 to 10", "10 to 17", "≥ 17"]
+recent["bucket"] = pd.cut(recent.exp_margin, bins, labels=labels)
+qs = recent.groupby("bucket", observed=True)[["pts_Q1", "pts_Q2", "pts_Q3", "pts_Q4"]].mean()
+q4_share = 100 * qs.pts_Q4 / qs.sum(axis=1)
+fig, ax = plt.subplots(figsize=(6.5, 2.8))
+ax.bar(range(len(q4_share)), q4_share.values, color=BLUE, width=0.6)
+for i, v in enumerate(q4_share.values):
+    ax.text(i, v + 0.4, f"{v:.1f}%", ha="center", fontsize=8, color=INK_2)
+ax.set_xticks(range(len(labels))); ax.set_xticklabels(labels, fontsize=8)
+ax.set_xlabel("expected margin (points)"); ax.set_ylabel("% of points in Q4"); ax.set_ylim(0, 34)
+bar_ends(ax); plt.tight_layout(); plt.show()
+```
+
+Big favorites score only about a fifth of their points in Q4: they run the clock once
+the game is decided. Big underdogs score close to 30% there (garbage time). Q4 points
+barely grow with team strength, unlike Q1–Q3. It's a nonlinear effect of one variable
+(expected margin), and trees capture it directly.
+
+## Medians, not means
+
+The period models train on absolute error, so each prediction is the period's
+**median**. That's the right number for an over/under (the 50/50 point), but medians
+don't add up: quarter predictions sum below the full-game prediction, because quarters
+have many zeros and a right skew. The periods aren't meant to reconcile exactly.
+
+**Status:** accuracy only. There are no period betting lines yet; see @sec-roadmap for
+the options and costs.

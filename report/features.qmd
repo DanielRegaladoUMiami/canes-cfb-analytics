@@ -1,0 +1,185 @@
+# Feature engineering {#sec-features}
+
+```{python}
+exec(open("_common.py").read())
+import lightgbm as lgb
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from canes_cfb.features import FEATURE_SETS, FEATURE_SETS_V2, SLATE, cumulative_sets, ridge_ratings, team_games
+from canes_cfb.validation import walk_forward
+
+g = games()
+feat = features()
+```
+
+## The as-of rule
+
+A feature for a game may only use games **played before it**. Using the game's own
+result, or anything later, is *leakage*: the backtest looks great and the model fails
+in real life.
+
+In practice, features are computed per **slate** (season, season type, week) from
+earlier slates only. A Saturday game never sees Thursday's result from the same week,
+which also matches what's known when lines are bet midweek. The rule is enforced by a
+test (`tests/test_features.py`): building the features with every future result
+**hidden** must produce exactly the same values as building them with full data. Both
+the score-based and the CFBD-based features pass it.
+
+Only FBS-vs-FBS games feed ratings and form; FCS blowouts would distort them.
+
+## Opponent-adjusted ratings
+
+Scoring 40 against a bad defense isn't the same as scoring 40 against a good one. The
+core feature, following @cfbd_ridge, solves for every offense and defense at once.
+Before each slate $s$, fit on prior team-games $i$:
+
+$$
+\text{points}_i \;=\; \mu \;+\; o_{\text{team}(i)} \;-\; d_{\text{opp}(i)} \;+\; h \cdot \text{hfa}_i \;+\; \varepsilon_i,
+\qquad \text{hfa}_i \in \{+1, 0, -1\},
+$$
+
+where $o$ is offensive strength, $d$ defensive strength (higher is better), and $h$ the
+home edge. Coefficients are estimated with **ridge regression** and **recency
+weights**:
+
+$$
+\min_{\mu, o, d, h} \; \sum_i w_i \big(\text{points}_i - \hat{\text{points}}_i\big)^2
+\;+\; \alpha \big(\lVert o \rVert^2 + \lVert d \rVert^2 + h^2\big),
+\qquad w_i = 2^{-\text{age}_i / \tau},
+$$
+
+with $\text{age}_i$ in days and half-life $\tau$. The training window is 600 days, so in
+September last season acts as the prior, and current form takes over as games
+accumulate. Ridge shrinks teams with little data toward average. The model's own
+prediction for a matchup is
+
+$$
+\text{exp\_points} = \mu + o_{\text{team}} - d_{\text{opp}} + h \cdot \text{hfa}.
+$$
+
+### Tuning α and τ
+
+```{python}
+#| label: tbl-ridge-grid
+#| tbl-cap: "MAE of exp_points alone (team points, 2017–2023) for each shrinkage α and recency half-life τ (days)."
+tg = team_games(g)
+ev = tg[tg.completed & tg.fbs_game & tg.season.between(2017, 2023)]
+grid = []
+for alpha in (0.3, 1, 3, 8):
+    for hl in (60, 120, 240):
+        rr = ridge_ratings(tg, alpha=alpha, half_life_days=hl)
+        opp = rr[[*SLATE, "team_id", "def"]].rename(columns={"team_id": "opp_id", "def": "opp_def"})
+        m = ev.merge(rr, on=[*SLATE, "team_id"]).merge(opp, on=[*SLATE, "opp_id"])
+        pred = m.intercept + m.off - m.opp_def + m.hfa_pts * m.hfa
+        grid.append({"alpha": alpha, "half-life": hl, "MAE": (m.points - pred).abs().mean()})
+grid = pd.DataFrame(grid).pivot(index="alpha", columns="half-life", values="MAE").round(3)
+grid
+```
+
+$\alpha = 1$, $\tau = 120$ days wins. Heavy shrinkage ($\alpha = 8$) squeezes every team
+toward average; a short memory ($\tau = 60$) forgets last season too fast for September.
+An early version used $\alpha = 25$ and compressed every rating to about ±1 point; that
+bug and its fix are in @sec-decisions.
+
+The same machinery is reused for **any per-game offensive stat** (plays, EPA per play,
+success rate, explosiveness, pass and rush EPA). The target is standardized before
+fitting, so $\alpha$ means the same shrinkage for every stat; coefficients are returned
+in the stat's own units.
+
+## Elo with a nonlinear margin of victory
+
+A second rating, FiveThirtyEight-style [@fte_elo]. After each game,
+
+$$
+R' = R + K \cdot M \cdot (S - E), \qquad
+E = \frac{1}{1 + 10^{-\Delta/400}}, \qquad
+M = \ln(|\text{MOV}| + 1) \cdot \frac{2.2}{0.001\,\Delta_w + 2.2},
+$$
+
+with $K = 25$, home edge 55 Elo points, and one-third regression to 1500 each
+offseason. The logarithm gives diminishing credit for blowouts (a 40-point win is worth
+little more than a 30-point win). The second factor corrects autocorrelation: favorites
+win by more, which would otherwise inflate their rating [@morse_elo].
+
+## Feature families
+
+```{python}
+#| label: tbl-families
+#| tbl-cap: "Feature families and their sizes."
+fams = {**FEATURE_SETS, **FEATURE_SETS_V2}
+desc = {
+    "raw_form": "points for/against, season-to-date and last 3, relative to league average",
+    "ratings": "ridge offense/defense for team and opponent, exp_points",
+    "elo": "Elo, opponent Elo, difference",
+    "matchup": "explicit interactions: off × opp_def, expected margin, |margin|, margin², residual form, volatility",
+    "context": "neutral site, conference game, rest days and difference, bowl, early season, indoor, week",
+    "efficiency": "ridge-adjusted tempo, EPA/play, success rate, explosiveness, pass/rush EPA",
+    "pace_x_efficiency": "expected plays × expected EPA/play, game pace, pass-vs-rush edge",
+    "priors": "talent composite and returning production, team and opponent",
+}
+pd.DataFrame({"features": {k: len(v) for k, v in fams.items()}, "what": desc})
+```
+
+## Which families earn their place?
+
+Walk-forward cross-validation (train on every season before, validate on each of
+2019–2023; @sec-modeling). Families are added one at a time. Ridge is linear;
+"LightGBM on residual" learns `points − exp_points`, so the ratings carry the signal and
+the trees correct what they miss.
+
+```{python}
+#| label: tbl-ablation
+#| tbl-cap: "Cross-validated MAE (points per team, 2019–2023) as feature families are added."
+data = feat[feat.completed & feat.season.between(2016, 2023) & ~feat.shortened & feat.market_points.notna()].reset_index(drop=True)
+y, ep = data.points.to_numpy(), data.exp_points.to_numpy()
+
+def cv(make, cols, residual):
+    errs = []
+    for _, tr, va in walk_forward(data):
+        t = y - ep if residual else y
+        pred = make().fit(data.loc[tr, cols], t[tr]).predict(data.loc[va, cols])
+        errs.append(np.abs(y[va] - pred - (ep[va] if residual else 0)).mean())
+    return np.mean(errs)
+
+ridge = lambda: make_pipeline(SimpleImputer(strategy="median", add_indicator=True), StandardScaler(), Ridge(alpha=10.0))
+resid = lambda: lgb.LGBMRegressor(n_estimators=300, learning_rate=0.02, num_leaves=7, min_child_samples=200,
+                                  subsample=0.8, subsample_freq=1, colsample_bytree=0.8, verbose=-1)
+rows = []
+for name, cols in cumulative_sets().items():
+    rows.append({"features": name, "Ridge": cv(ridge, cols, False), "LightGBM on residual": cv(resid, cols, True)})
+abl = pd.DataFrame(rows).set_index("features")
+va = data.season >= 2019
+ref = pd.DataFrame({"Ridge": [np.abs(y - data.league_avg)[va].mean(), np.abs(y - ep)[va].mean(), np.abs(y - data.market_points)[va].mean()]},
+                   index=["baseline: league average", "ratings formula alone", "market: closing line"])
+pd.concat([ref, abl]).map(lambda v: "—" if pd.isna(v) else f"{v:.2f}")
+```
+
+```{python}
+#| label: fig-ablation
+#| fig-cap: "Error as families are added (LightGBM on residual), against the league-average baseline and the closing line."
+fig, ax = plt.subplots(figsize=(6.5, 3))
+xs = range(len(abl))
+ax.plot(xs, abl["LightGBM on residual"], color=BLUE, marker="o", markersize=5, label="model")
+ax.axhline(ref.loc["market: closing line", "Ridge"], color=ORANGE, lw=1.5, ls="--")
+ax.text(len(abl) - 1, ref.loc["market: closing line", "Ridge"] + 0.02, "closing line", ha="right", color=INK_2, fontsize=8)
+ax.set_xticks(list(xs)); ax.set_xticklabels(abl.index, rotation=30, ha="right", fontsize=8)
+ax.set_ylabel("MAE (points per team)"); bar_ends(ax); plt.tight_layout(); plt.show()
+```
+
+Note: the "LightGBM on residual" column always starts from the ratings' prediction
+(it learns `points − exp_points`), so even its `raw_form` row already contains the
+ratings. That's why it starts near 9.44, not near 10.
+
+The reading:
+
+- **Opponent adjustment is the big win.** The league average misses by ~11.1; the ratings
+  alone by ~9.44. Raw form (unadjusted points) only reaches ~10.0.
+- Elo, explicit matchup terms and context add almost nothing on top of the ratings.
+- **CFBD efficiency** helps a bit (~9.38), and **talent and returning production** help
+  most among the new families (~9.30), mainly by fixing early weeks.
+- The explicit pace × efficiency product adds nothing: trees already combine plays and
+  efficiency on their own.
+- The **closing line** is still better (~8.91). The gap is information, not model
+  complexity, which is what @sec-nonlinearity investigates.

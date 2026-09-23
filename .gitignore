@@ -228,3 +228,8 @@ data/**/*
 
 # CatBoost training logs
 catboost_info/
+
+# Quarto build output (the PDF copy in report/ is committed)
+report/_book/
+report/.quarto/
+report/*_files/

@@ -1,0 +1,84 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "Canes CFB Analytics"
+  subtitle: "Predicting college football points, spreads and totals — and testing them against the market"
+  author: "Daniel Regalado"
+  date: "2026-09-23"
+  date-format: long
+  repo-url: https://github.com/DanielRegaladoUMiami/canes-cfb-analytics
+  repo-subdir: report
+  chapters:
+    - index.qmd
+    - part: "Foundations"
+      chapters:
+        - project.qmd
+        - data.qmd
+        - eda.qmd
+    - part: "Features and models"
+      chapters:
+        - features.qmd
+        - nonlinearity.qmd
+        - modeling.qmd
+        - periods.qmd
+    - part: "Betting"
+      chapters:
+        - betting.qmd
+        - decisions.qmd
+        - roadmap.qmd
+  appendices:
+    - reproduce.qmd
+    - glossary.qmd
+    - references.qmd
+
+bibliography: references.bib
+
+execute:
+  freeze: auto
+  echo: false
+  warning: false
+  message: false
+
+jupyter: python3
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    toc: true
+    number-sections: true
+    code-fold: true
+    fig-format: svg
+    html-math-method: katex
+  pdf:
+    documentclass: scrreprt
+    classoption: [oneside, 11pt]
+    papersize: letter
+    geometry: [margin=1in]
+    pdf-engine: xelatex
+    mainfont: "STIXGeneral"
+    sansfont: "Helvetica Neue"
+    monofont: "Menlo"
+    monofontoptions: ["Scale=0.85"]
+    linestretch: 1.15
+    toc: true
+    lof: true
+    lot: true
+    number-sections: true
+    colorlinks: true
+    linkcolor: "blue"
+    fig-format: pdf
+    fig-pos: "htbp"
+    fig-width: 6.5
+    fig-height: 3.2
+    include-in-header:
+      text: |
+        \usepackage{booktabs}
+        \usepackage{amsmath}
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhead[L]{\small Canes CFB Analytics}
+        \fancyhead[R]{\small\leftmark}

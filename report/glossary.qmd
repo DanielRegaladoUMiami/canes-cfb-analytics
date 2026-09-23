@@ -1,0 +1,28 @@
+# Glossary {#sec-glossary}
+
+| Term | Meaning |
+|---|---|
+| **As-of** | Computed only from information available before the game |
+| **Ablation** | Adding (or removing) one feature family at a time to measure its contribution |
+| **Break-even** | The win rate needed not to lose money: 52.38% at −110 |
+| **CLV** (closing line value) | How far the line moved toward a pick between when it was taken and kickoff |
+| **Closing / opening line** | The market's number at kickoff / when first posted |
+| **Cover** | Winning against the spread: home covers when margin + spread > 0 |
+| **Edge** | Model prediction minus the market's line, in points |
+| **EPA / PPA** | Expected points added per play: efficiency above what a situation usually yields |
+| **exp_points** | The ridge ratings' prediction for a team's points in a matchup |
+| **FBS / FCS** | College football's top division / the division below |
+| **Game script** | How the score shapes play: leaders run the clock, trailers pass and score late |
+| **Leakage** | Using information from the future (or the outcome itself) in a feature |
+| **MAE** | Mean absolute error, in points |
+| **OOF** | Out-of-fold: predictions for rows the model didn't train on |
+| **Push** | Exactly on the line; the stake is returned |
+| **Ridge regression** | Linear regression with an L2 penalty that shrinks coefficients toward zero |
+| **SHAP** | Attribution of a prediction to each feature (and pairs, for interactions) |
+| **Shootout** | A game whose expected total is in the top 20% (above 63.5 points) |
+| **Slate** | One (season, season type, week) |
+| **Stacking** | Combining models with weights learned from their out-of-fold predictions |
+| **Walk-forward CV** | Train on all seasons before N, validate on N, repeat for several N |
+| **−110** | Standard price: risk 110 to win 100 |
+
+: Terms used in this book. {#tbl-glossary}

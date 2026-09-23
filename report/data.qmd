@@ -1,0 +1,107 @@
+# Data {#sec-data}
+
+```{python}
+exec(open("_common.py").read())
+g = games()
+lines = pd.read_parquet(RAW / "lines.parquet")
+adv = pd.read_parquet(RAW / "advanced.parquet")
+```
+
+## Sources
+
+| Need | Source | Access |
+|---|---|---|
+| Games, venue, neutral site, conference game, final score | ESPN scoreboard (`groups=80`, FBS) | Free, no key |
+| **Points by quarter** (Q1–Q4, OT) | ESPN scoreboard `linescores` | Free, no key |
+| Betting lines: spread, total, moneyline, open and close | CollegeFootballData `/lines` [@cfbd] | Free key, 3,000 calls/month |
+| Efficiency per team-game: plays, EPA/PPA, success rate, explosiveness, pass/rush splits | CFBD `/stats/game/advanced` | Same key |
+| Talent composite, returning production | CFBD `/talent`, `/player/returning` | Same key |
+
+: Data sources. {#tbl-sources}
+
+CFBD game ids are the same as ESPN's, so every table joins on `game_id`. Tables keyed by
+school name (advanced stats, talent, returning production) map to ids through **FBS
+teams only**, because some names repeat across divisions (there's more than one
+"Charlotte" and "Troy").
+
+## Ingestion and caching
+
+Both clients (`src/canes_cfb/espn.py`, `cfbd.py`) cache every raw response as JSON under
+`data/raw/`:
+
+- **ESPN:** a week whose games are all final is never downloaded again. Weeks with
+  unfinished games are refreshed.
+- **CFBD:** one call per season per endpoint. Past seasons are never requested twice,
+  and the current season is refreshed. A full rebuild of 2015–2026 costs ~60 calls.
+
+The data itself is **never committed** (`data/` is git-ignored, ~220 MB). It can be
+rebuilt from the notebooks in `00_data/`, and republishing ESPN/CFBD data in a public
+repository isn't appropriate.
+
+## Validation
+
+```{python}
+done = g[g.completed & ~g.shortened]
+mismatch = 0
+for side in ("home", "away"):
+    by_q = done[[f"{side}_q{i}" for i in range(1, 5)]].sum(axis=1) + done[f"{side}_ot"]
+    mismatch += int((by_q != done[f"{side}_points"]).sum())
+fbs = g[g.home_fbs & g.away_fbs]
+fbs_teams = pd.concat([
+    fbs[["season", "home_id"]].set_axis(["season", "team_id"], axis=1),
+    fbs[["season", "away_id"]].set_axis(["season", "team_id"], axis=1),
+]).drop_duplicates().groupby("season").size()
+n_games, n_done = len(g), int(g.completed.sum())
+n_short = int(g.shortened.sum())
+```
+
+Every check passes:
+
+1. **One row per game.** `game_id` is unique across `{python} f"{n_games:,}"` games
+   (`{python} f"{n_done:,}"` completed).
+2. **Quarters add up.** Q1 + Q2 + Q3 + Q4 + OT equals the final score in every completed,
+   full-length game (`{python} mismatch` mismatches).
+3. **FBS membership is right.** A team counts as FBS in a season if it plays 6+ games in
+   that season's FBS scoreboard; FCS opponents appear only in their one or two games
+   against FBS teams. The counts match reality (128 teams in 2015, 134 in 2024).
+4. **Weather-shortened games are flagged.** `{python} n_short` games ended before Q4
+   (for example, Kentucky vs Southern Miss in 2024, called for lightning). They have no
+   quarter or half targets and are excluded from training.
+
+```{python}
+#| label: fig-fbs-teams
+#| fig-cap: "FBS teams per season, as identified from the scoreboard (2026 includes scheduled games)."
+fig, ax = plt.subplots(figsize=(6.5, 2.6))
+ax.bar(fbs_teams.index, fbs_teams.values, color=BLUE, width=0.6)
+ax.set_ylim(120, 142)
+ax.set_ylabel("teams")
+for x, v in zip(fbs_teams.index, fbs_teams.values):
+    ax.text(x, v + 0.4, str(v), ha="center", fontsize=8, color=INK_2)
+bar_ends(ax); plt.show()
+```
+
+## Coverage of lines and advanced stats
+
+```{python}
+#| label: tbl-coverage
+#| tbl-cap: "Share of FBS-vs-FBS games with each data type, by season (%)."
+f2 = g[g.completed & g.home_fbs & g.away_fbs & (g.season <= 2025)].merge(lines, on="game_id", how="left")
+cov = pd.DataFrame({
+    "games": f2.groupby("season").size(),
+    "closing spread": f2.groupby("season").spread_close.apply(lambda s: 100 * s.notna().mean()),
+    "opening spread": f2.groupby("season").spread_open.apply(lambda s: 100 * s.notna().mean()),
+    "advanced stats": f2.assign(has=f2.game_id.isin(adv.game_id)).groupby("season").has.mean() * 100,
+}).round(1)
+cov
+```
+
+Two facts shape everything downstream:
+
+- **Closing lines cover every game**, so the closing line is always available as the
+  benchmark.
+- **Opening lines only exist from 2021.** Anything trained *against the opener* has at
+  most three seasons (2021–2023) before validation. That's why the market layer in
+  @sec-modeling is deliberately tiny.
+
+Consensus lines are the **median across books** (ESPN Bet, DraftKings, Bovada in recent
+seasons).

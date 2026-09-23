@@ -13,6 +13,13 @@ folder of Jupyter notebooks, one per game period:
 That makes 18 model notebooks. They are fed by the data notebooks and judged by the
 evaluation notebooks.
 
+## Documentation
+
+**[`report/Canes-CFB-Analytics.pdf`](report/Canes-CFB-Analytics.pdf)**: the full write-up
+(data, features, nonlinearity insights, models, the one-shot test, betting rules,
+decisions and corrections). Built with Quarto + LaTeX from `report/`; every table and
+figure is computed from the data. Rebuild with `cd report && quarto render`.
+
 ## Repo layout
 
 ```
@@ -38,6 +45,7 @@ canes-cfb-analytics/
 ├── models/                 # tuned params + final recipe (JSON, committed)
 ├── paper_trading/          # pre-registered picks, logged before kickoff
 ├── data/                   # raw → interim → processed → predictions (git-ignored)
+├── report/                 # Quarto book (PDF + HTML) documenting everything
 ├── docs/
 │   ├── pipeline.md         # EDA findings, features, split, models, tuning, ensemble
 │   ├── research/           # feature-engineering research with sources

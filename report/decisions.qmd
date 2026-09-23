@@ -1,0 +1,56 @@
+# Decision log and corrections {#sec-decisions}
+
+Everything below was decided on 2026-09-23 unless noted. Corrections are listed
+explicitly. A project like this is only trustworthy if its mistakes are visible.
+
+## Decisions
+
+| Decision | Chosen | Alternatives | Why |
+|---|---|---|---|
+| Repository | New, separate `canes-cfb-analytics` | Extend `cfb-canes-analytics` | Notebook-first project with its own scope |
+| Organization | One folder per **market type**, one notebook per period | Folder per period | Keeps models of the same kind together |
+| Benchmark | Sportsbook lines only | Exchanges (Kalshi, Polymarket) | Scope requested; exchange references removed from the repo |
+| First target | **Points per team** | Game total, spread | One model yields spread, total and winner |
+| Split | **By time**: train 2016–23, validate 2024, test 2025 | Random 80/20 | Random splits leak the future |
+| Data first | ESPN (free) for games and quarters, CFBD for lines and efficiency | CFBD only | Could start before the API key existed |
+| Final points model | Random forest on the ratings residual | Stacking, XGBoost | Best on 2024 validation (within noise) |
+| Market layer | Dropped | Keep | Spreads failed; the totals result wasn't using the model |
+| Real money | **No**; paper-trade two pre-registered rules through 2026 | Bet now | Edge not proven; the market is more accurate on average |
+| Weekly runs | GitHub Actions | Local cron, manual | Runs with the Mac off; commits give tamper-evident timestamps |
+| Period lines (#4) | Build models now, buy lines later | Buy history now ($119) or forward only ($30/month) | See whether period models predict well first |
+
+: Main decisions. {#tbl-decisions}
+
+## Corrections: things that were wrong and got fixed
+
+1. **Ratings were over-shrunk.** The first ridge ratings used $\alpha = 25$ and came out
+   with a spread of about ±1.3 points, when real team differences are about ±15. Tuning
+   found $\alpha = 1$ (@tbl-ridge-grid).
+2. **A stale feature file.** The first ablation run used features built *before* the
+   $\alpha$ fix, so "ratings alone" showed 10.4 instead of 9.44. The inconsistency with
+   the tuning grid gave it away; the table was rebuilt and rerun.
+3. **Notebook ordering bug.** The feature notebook once saved a v1-only table over the
+   full one, which broke the backtest downstream. Sections were separated, and v1
+   experiments now use `cumulative_sets(include_v2=False)`.
+4. **Lint "fixes" deleted notebook imports.** Ruff's autofix removed "unused" imports
+   from empty notebook skeletons. The unused-import rule is now disabled for notebooks
+   only.
+5. **"The totals result is a 2025 artifact."** The market layer's 55.7% on 2025 totals
+   was first dismissed as an under-heavy year. The season-by-season analysis showed a
+   stable shootout-under effect from 2021 to 2025. The dismissal was partly wrong, and
+   the effect became rule B.
+6. **"Since 2019."** The shootout effect was first described as holding every season
+   since 2019; 2020 was 51.7%. The accurate statement: every season from 2021 to 2025.
+7. **Ranges in the backtest notes** were rounded too generously (for example "49–50%"
+   when a threshold reached 48.4%). They were replaced with the exact ranges.
+8. **Opening lines availability.** The early "vs open" backtest was described as
+   covering 2019–2023; opening lines only exist from 2021, so it covered 2021–2023.
+
+## What the evidence says, plainly
+
+- The market is **more accurate** than the model at both the open and the close.
+- Spread signals **flip sign** between seasons: noise.
+- Two totals signals survived a held-out check. Neither is statistically decisive yet,
+  and both are tracked on paper.
+- The model's disagreement with the opener predicts **line movement** (positive CLV)
+  every season. That's the most robust signal found so far.

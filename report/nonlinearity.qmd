@@ -1,0 +1,187 @@
+# Nonlinearities and interactions {#sec-nonlinearity}
+
+```{python}
+exec(open("_common.py").read())
+import json
+import lightgbm as lgb
+import shap
+from canes_cfb.modeling import FEATURES
+
+feat = features()
+data = feat[feat.completed & ~feat.shortened & feat.season.between(2016, 2023)].reset_index(drop=True)
+tuned = json.loads((ROOT / "models" / "team_points_params.json").read_text())
+```
+
+The feature work so far asked *which* information helps. This chapter asks *how* it
+helps: which relationships are curved, which have thresholds, and which variables
+interact. Those answers are what feature engineering should target. There are two lenses:
+
+1. **What did the model learn?** SHAP values [@lundberg_shap] on the points model.
+2. **Where is the market wrong?** Segments where the closing line misses systematically.
+
+## First, a direct test: do interactions help at all?
+
+An additive model can't represent interactions: gradient boosting with single-split trees
+(stumps) builds $f(x) = \sum_j f_j(x_j)$. If deeper trees, which *can* learn
+interactions, don't beat stumps, the data holds no interactions a model can exploit. In
+every experiment (@tbl-additive, copied from the experiment logs), the additive model
+matched or beat the deeper ones:
+
+| Feature set | Additive (stumps) | Depth 2 | 15 leaves |
+|---|---|---|---|
+| v1 (scores only) | 9.460 | 9.482 | 9.607 |
+| v2 (+ CFBD efficiency, priors) | 9.295 | 9.302 | 9.419 |
+
+: Walk-forward CV MAE: additive vs interaction-capable LightGBM. {#tbl-additive}
+
+## Model lens: shapes of the main effects
+
+The model below is deliberately deeper than the tuned one (15 leaves), so interactions
+*can* show up if they exist.
+
+```{python}
+params = {**tuned["lightgbm"]["params"], "num_leaves": 15, "min_child_samples": 50}
+model = lgb.LGBMRegressor(subsample_freq=1, random_state=7, verbose=-1, **params)
+model.fit(data[FEATURES], data.points - data.exp_points)
+sample = data[data.season >= 2019].sample(2500, random_state=1)
+explainer = shap.TreeExplainer(model)
+sv = explainer.shap_values(sample[FEATURES])
+importance = pd.Series(np.abs(sv).mean(0), index=FEATURES).sort_values(ascending=False)
+```
+
+```{python}
+#| label: fig-shap-shapes
+#| fig-cap: "Mean SHAP value by feature decile: points the model adds to the ratings' prediction."
+top = ["exp_total", "talent_diff", "ret_ppa", "exp_sr"]
+labels = {"exp_total": "expected total", "talent_diff": "talent gap",
+          "ret_ppa": "returning prod.", "exp_sr": "success rate"}
+fig, axes = plt.subplots(1, 4, figsize=(6.5, 2.4), sharey=True)
+for ax, col in zip(axes, top):
+    deciles = pd.qcut(sample[col], 10, labels=False, duplicates="drop")
+    eff = pd.Series(sv[:, FEATURES.index(col)], index=sample.index).groupby(deciles).mean()
+    ax.axhline(0, color=INK_2, lw=0.8)
+    ax.plot(eff.index + 1, eff.values, color=BLUE, marker="o", markersize=4)
+    ax.set_title(labels[col], fontsize=9); ax.set_xticks([1, 5, 10]); ax.set_xlabel("decile", fontsize=8)
+axes[0].set_ylabel("points"); plt.tight_layout(); plt.show()
+```
+
+| Feature | Shape | Reading | Feature idea |
+|---|---|---|---|
+| Expected game total | +2 → −2 points, steepest at the ends | Ratings overstate high-scoring games: **regression to the mean** | Shrink extremes; a **shootout** flag |
+| Talent difference | Negative tail, flat middle, positive tail | Only **big** talent gaps matter | Tail/threshold features |
+| Returning production | Strongly negative in the lowest decile, flat above the median | Heavy roster turnover hurts | Low-returning-production threshold |
+| Expected success rate | Convex, largest at the top | Elite efficiency carries information that points miss | Elite-efficiency tail |
+
+## Model lens: interaction strength
+
+```{python}
+#| label: tbl-interactions
+#| tbl-cap: "Strongest pairwise SHAP interactions (mean absolute contribution, points)."
+iv = explainer.shap_interaction_values(sample[FEATURES])
+strength = np.abs(iv).mean(0)
+main_total = np.diagonal(strength).sum()
+np.fill_diagonal(strength, 0)
+pairs = sorted(((FEATURES[i], FEATURES[j], 2 * strength[i, j]) for i in range(len(FEATURES))
+                for j in range(i + 1, len(FEATURES))), key=lambda x: -x[2])[:8]
+pd.DataFrame(pairs, columns=["feature A", "feature B", "strength"]).set_index("feature A").round(3)
+```
+
+The strongest interaction is worth about 0.14 points, against about
+`{python} f"{main_total:.0f}"` points of main effects summed. **The signal lives in
+one-variable curves and thresholds, not in crosses.** That agrees with @tbl-additive.
+
+## Market lens: where does the closing line miss?
+
+The market is more accurate than the model on average, but it might still be wrong in
+particular *places*. Every candidate feature was cut into quintiles (on 2016–2023), and
+each segment's over rate (vs the closing total) or home-cover rate (vs the closing spread)
+was tested. Then the same segments were checked on **2024–2025**, which was never used to
+find them.
+
+```{python}
+#| label: tbl-market-lens
+#| tbl-cap: "Segments where the closing line missed in 2016–2023 (|z| ≥ 2), with the 2024–25 holdout."
+h = home_rows()
+h = h[h.total_close.notna()]
+h["total_result"] = np.sign(h.total - h.total_close)
+h["cover_result"] = np.sign(h.margin + h.spread_close)
+h["ret_diff"] = h.ret_ppa - h.opp_ret_ppa
+cands = {"exp_total": "total_result", "total_close": "total_result", "game_pace": "total_result",
+         "week": "total_result", "talent_diff": "cover_result", "ret_diff": "cover_result",
+         "elo_diff": "cover_result", "rest_diff": "cover_result"}
+disc, hold = h[h.season.between(2016, 2023)], h[h.season.between(2024, 2025)]
+
+def rate(df, col):
+    s = df[col][df[col] != 0]
+    return 100 * (s > 0).mean(), len(s)
+
+found = []
+for col, res in cands.items():
+    edges = pd.qcut(disc[col], 5, retbins=True, duplicates="drop")[1]
+    edges[0], edges[-1] = -np.inf, np.inf
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        ra, na = rate(disc[(disc[col] > lo) & (disc[col] <= hi)], res)
+        rb, nb = rate(hold[(hold[col] > lo) & (hold[col] <= hi)], res)
+        z = (ra / 100 - 0.5) / np.sqrt(0.25 / na)
+        found.append({"feature": col, "outcome": "over %" if res == "total_result" else "home cover %",
+                      "segment": f"({lo:.1f}, {hi:.1f}]", "2016–23": ra, "n": na, "z": z, "2024–25": rb, "n hold": nb})
+found = pd.DataFrame(found)
+n_tested = len(found)
+sig = found[found.z.abs() >= 2].sort_values("z", key=abs, ascending=False)
+sig["holds"] = np.where(np.sign(sig["2016–23"] - 50) == np.sign(sig["2024–25"] - 50), "yes", "no")
+sig.set_index("feature").round(1)
+```
+
+`{python} n_tested` segments were tested, so about `{python} round(0.05 * n_tested)` would
+clear $|z| \ge 2$ by chance alone. Two patterns:
+
+- **Totals: every surviving segment points the same way, and it holds in the holdout.**
+  High expected totals, high closing totals and very fast pace all lean **under**.
+- **Spreads: the "significant" segments flip sign in the holdout.** That's noise from
+  testing many bins.
+
+{{< pagebreak >}}
+
+## The shootout-under effect
+
+```{python}
+decided = h[h.total_result != 0]
+threshold = decided.loc[decided.season.between(2016, 2023), "exp_total"].quantile(0.8)
+shoot = decided[decided.exp_total > threshold]
+stab = pd.DataFrame({
+    "shootout games": shoot.groupby("season").size(),
+    "shootout under %": shoot.groupby("season").total_result.apply(lambda s: 100 * (s < 0).mean()),
+    "all games under %": decided.groupby("season").total_result.apply(lambda s: 100 * (s < 0).mean()),
+}).loc[2015:2025]
+op = shoot[shoot.total_open.notna()].copy()
+op["r"] = np.sign(op.total - op.total_open)
+op = op[(op.r != 0) & op.season.between(2021, 2025)]
+pooled_open = 100 * (op.r < 0).mean()
+```
+
+Define a **shootout** as a game where the ratings' expected total is in the top 20%
+(above `{python} f"{threshold:.1f}"` points, a threshold set on 2016–2023).
+
+```{python}
+#| label: fig-shootout
+#| fig-cap: "Under rate vs the closing total: expected shootouts vs all games, by season. Dashed line: 52.4% break-even at −110."
+fig, ax = plt.subplots(figsize=(6.5, 3))
+ax.plot(stab.index, stab["shootout under %"], color=ORANGE, marker="o", markersize=5, label="expected shootouts")
+ax.plot(stab.index, stab["all games under %"], color=BLUE, marker="o", markersize=4, label="all games")
+ax.axhline(52.38, color=INK_2, lw=1, ls="--")
+ax.text(2015, 52.9, "break-even 52.4%", fontsize=8, color=INK_2)
+ax.set_ylabel("% under"); ax.legend(frameon=False, loc="upper left", fontsize=8)
+ax.set_xticks(stab.index); ax.tick_params(axis="x", labelsize=8); bar_ends(ax); plt.show()
+```
+
+- **Every season from 2021 to 2025** went 55–60% under in expected shootouts (2019: 59.9%;
+  2020, the COVID season: 51.7%; 2015–2018 near 50%).
+- The gap is there **even in over-heavy years**: in 2024 only 48% of all games went under,
+  but 55% of expected shootouts did.
+- **Against the bettable opening total**, 2021–2025 pooled: `{python} f"{pooled_open:.1f}"`%
+  under on `{python} len(op)` games, above break-even in each of the five seasons.
+
+It's the same nonlinearity as the expected-total SHAP curve, seen from the market side:
+**games that look like shootouts get overestimated, by the ratings and by the market.**
+It became paper rule B (@sec-betting). An honest caveat: the 20% cut was chosen while
+looking at 2016–2023, which includes 2021–2023; the clean confirmation is 2024–2025.
