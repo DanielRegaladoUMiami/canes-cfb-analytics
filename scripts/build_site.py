@@ -39,7 +39,7 @@ LIGHT_EV = 0.01  # "valor ligero": +1% to +3%; below that it's noise, so pass
 
 
 def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
-    """(tier, bet label, plain-language why) for a game's total. Spreads are never picked:
+    """(tier, bet label, plain-English why) for a game's total. Spreads are never picked:
     the model's spread edge hasn't beaten the opening line historically."""
     per100 = round(100 * row.total_p_side)
     line = f"{row.total_open:g}"
@@ -47,31 +47,51 @@ def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
         return (
             "pass",
             None,
-            f"Dos señales chocan: el modelo espera {row.pred_total:.0f} puntos (over {line}), "
-            f"pero parece un partido de muchos puntos, que suele ir under. Cuando pasa eso, "
-            f"históricamente es 50/50. Mejor pasar.",
+            f"Two signals disagree. The model projects {row.pred_total:.0f} points (over {line}), "
+            f"but this looks like a shootout, and shootouts tend to go under. When that "
+            f"happens, it's been a coin flip. Pass.",
         )
     if row.total_ev >= LIGHT_EV:
         tier = "best" if row.total_ev >= BEST_EV else "light"
         label = f"{row.total_side.capitalize()} {line}"
         if row.shootout and row.total_side == "under":
             why = (
-                f"Los partidos que parecen de muchos puntos (los ratings esperan "
-                f"{row.exp_total:.0f}) han terminado under unas {per100} de cada 100 veces "
-                f"desde 2021."
+                f"Games that look like shootouts (ratings project {row.exp_total:.0f} points) "
+                f"have gone under about {per100} of every 100 times since 2021."
             )
         else:
             why = (
-                f"El modelo espera {row.pred_total:.0f} puntos y la línea está en {line}. "
-                f"Apuestas así han ganado unas {per100} de cada 100 veces desde 2021."
+                f"The model projects {row.pred_total:.0f} points against a line of {line}. "
+                f"Bets like this have won about {per100} of every 100 times since 2021."
             )
         return tier, label, why
     return (
         "pass",
         None,
-        f"No hay ventaja suficiente: para ganarle a la comisión necesitas acertar 53 de cada "
-        f"100 y aquí andamos en {per100}.",
+        f"Not enough edge. To beat the sportsbook's cut you need to win 53 of every 100, "
+        f"and this one sits around {per100}.",
     )
+
+
+def team_meta(season: int, week: int) -> dict[int, dict]:
+    """Abbreviation, colors, AP rank and record per team, from the cached ESPN scoreboard."""
+    path = RAW / "espn" / "scoreboard" / f"{season}_2_{week}.json"
+    meta: dict[int, dict] = {}
+    if not path.exists():
+        return meta
+    for event in json.loads(path.read_text()).get("events", []):
+        for c in event["competitions"][0]["competitors"]:
+            t = c["team"]
+            rank = (c.get("curatedRank") or {}).get("current", 99)
+            records = [r.get("summary") for r in c.get("records", []) if r.get("type") == "total"]
+            meta[int(t["id"])] = {
+                "abbr": t.get("abbreviation"),
+                "color": f"#{t['color']}" if t.get("color") else None,
+                "alt": f"#{t['alternateColor']}" if t.get("alternateColor") else None,
+                "rank": rank if rank <= 25 else None,
+                "record": records[0] if records else None,
+            }
+    return meta
 
 
 def check(name: str, ok: bool | None, detail: str, warn: bool = False) -> dict:
@@ -87,6 +107,8 @@ def main() -> None:
     lines = pd.read_parquet(RAW / "lines.parquet")[["game_id", "home_ml", "away_ml"]]
     g = g.merge(lines, on="game_id", how="left")
     season, week = int(g.season.iloc[0]), int(g.week.iloc[0])
+    g = g.merge(games[["game_id", "home_id", "away_id"]], on="game_id", how="left")
+    meta = team_meta(season, week)
 
     # Probabilities (calibrated on out-of-sample 2021-2025) and expected value at -110.
     g["p_home_win"] = calibration.win_probability(g.pred_margin, cal)
@@ -140,54 +162,53 @@ def main() -> None:
     started = int((g.start_utc <= now).sum())
     checks = [
         check(
-            "Todos los partidos FBS contra FBS de la semana tienen predicción",
+            "Every FBS-vs-FBS game this week has a prediction",
             n == len(fbs_slate) and set(g.game_id) == set(fbs_slate.game_id),
-            f"{n} predichos de {len(fbs_slate)} en la semana {week}; "
-            f"{len(slate) - len(fbs_slate)} partidos contra equipos FCS quedan fuera",
+            f"{n} of {len(fbs_slate)} predicted for week {week}; "
+            f"{len(slate) - len(fbs_slate)} games against FCS teams are out of scope",
         ),
         check(
-            "No falta ninguna predicción",
+            "No missing predictions",
             bool(g[["pred", "pred_away", *period_cols]].notna().all().all()),
-            "puntos por equipo y cada mitad y cuarto presentes",
+            "team points and every half and quarter present",
         ),
         check(
-            "Spread y total cuadran con el marcador esperado",
+            "Spread and total match the projected score",
             arith < 1e-9,
-            f"diferencia aritmética máxima {arith:.2e} puntos",
+            f"largest arithmetic gap {arith:.2e} points",
         ),
         check(
-            "Hay líneas de apertura",
+            "Opening lines available",
             n_spread == n and n_total == n,
             f"spread {n_spread}/{n}, total {n_total}/{n}",
             warn=True,
         ),
         check(
-            "El modelo coincide con el mercado en quién es mejor",
+            "Model agrees with the sportsbooks on who's better",
             corr > 0.85 and same_fav > 0.8,
-            f"correlación entre margen del modelo y spread {corr:.2f}; "
-            f"mismo favorito en {100 * same_fav:.0f}% de los partidos",
+            f"correlation between model margin and the spread {corr:.2f}; "
+            f"same favorite in {100 * same_fav:.0f}% of games",
         ),
         check(
-            "Los totales del modelo están cerca de los del mercado",
+            "Model totals are close to the sportsbooks'",
             tot_gap < 6,
-            f"diferencia promedio |total del modelo − total de apertura| = {tot_gap:.1f} puntos",
+            f"average |model total − opening total| = {tot_gap:.1f} points",
         ),
         check(
-            "La probabilidad de ganar está calibrada (2021–2025)",
+            "Win probabilities are honest (2021–2025)",
             worst_gap < 0.05,
-            f"mayor diferencia entre probabilidad predicha y frecuencia real: "
-            f"{100 * worst_gap:.1f} puntos",
+            f"largest gap between predicted and actual win rate: {100 * worst_gap:.1f} points",
         ),
         check(
-            "El registro de apuestas en papel coincide con las reglas",
+            "Practice-bet log matches the rules",
             expect_a == logged_a and expect_b == logged_b,
-            f"regla A {len(logged_a)} (esperadas {len(expect_a)}), "
-            f"regla B {len(logged_b)} (esperadas {len(expect_b)})",
+            f"rule A {len(logged_a)} (expected {len(expect_a)}), "
+            f"rule B {len(logged_b)} (expected {len(expect_b)})",
         ),
         check(
-            "Las predicciones son previas al inicio de los partidos",
+            "Predictions were made before kickoff",
             started == 0,
-            f"{started} partidos ya habían empezado al generar la página",
+            f"{started} games had already started when the page was built",
             warn=True,
         ),
     ]
@@ -214,6 +235,8 @@ def main() -> None:
                 "kickoff": row.start_utc.isoformat(),
                 "home": row.home,
                 "away": row.away,
+                "home_team": meta.get(int(row.home_id), {}),
+                "away_team": meta.get(int(row.away_id), {}),
                 "pred_home": r(row.pred),
                 "pred_away": r(row.pred_away),
                 "margin": r(row.pred_margin),
