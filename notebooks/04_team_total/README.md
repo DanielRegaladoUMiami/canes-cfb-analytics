@@ -11,3 +11,5 @@
 | [`2H.ipynb`](2H.ipynb) | 2H | Q3 + Q4 + OT | not started |
 
 Conventions: see [`docs/markets.md`](../../docs/markets.md).
+
+| [`periods.ipynb`](periods.ipynb) | 1H, 2H, Q1–Q4 team points: baselines, model, game script in Q4 | done (accuracy; no period lines yet) |

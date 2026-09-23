@@ -28,8 +28,15 @@ import pandas as pd
 
 from canes_cfb import betting, cfbd, espn
 from canes_cfb.features import build_all
-from canes_cfb.modeling import SPECS, ensemble_predict, fit_predict, models_needed
+from canes_cfb.modeling import (
+    FEATURES,
+    SPECS,
+    ensemble_predict,
+    fit_predict,
+    models_needed,
+)
 from canes_cfb.paths import PREDICTIONS, PROCESSED, RAW, ROOT
+from canes_cfb.periods import PERIODS, add_period_shares, add_period_targets, fit_predict_period
 
 SEASON = 2026
 PAPER_TOTAL_EDGE = 4.0  # points vs the opening total
@@ -75,10 +82,32 @@ def main() -> None:
     )
     rows["pred"] = ensemble_predict(base_preds, recipe)
 
+    # Halves and quarters (saved to the parquet; no period lines to price them yet, #4).
+    with_periods = add_period_shares(add_period_targets(features))
+    period_train = with_periods[with_periods.completed & ~with_periods.shortened]
+    period_train = period_train[period_train.season >= 2016]
+    period_rows = (
+        with_periods.set_index(["game_id", "team_id"])
+        .loc[rows.set_index(["game_id", "team_id"]).index]
+        .reset_index()
+    )
+    for p in PERIODS:
+        rows[f"pred_{p.value}"] = fit_predict_period(
+            p, period_train, period_rows, FEATURES, params["lightgbm"]["params"]
+        )
+
     games = pd.read_parquet(RAW / "games.parquet")
     keep = ["game_id", "team_id", "team", "opp", "pred", "season", "season_type", "week",
             "start_utc", "spread_open", "spread_close", "total_open", "total_close"]  # fmt: skip
     g = betting.to_games(rows[keep], games).rename(columns={"team": "home", "opp": "away"})
+    for p in PERIODS:
+        side = rows[["game_id", "team_id", f"pred_{p.value}"]].merge(
+            games[["game_id", "home_id"]], on="game_id"
+        )
+        home = side[side.team_id == side.home_id].set_index("game_id")[f"pred_{p.value}"]
+        away = side[side.team_id != side.home_id].set_index("game_id")[f"pred_{p.value}"]
+        g[f"pred_margin_{p.value}"] = g.game_id.map(home - away)
+        g[f"pred_total_{p.value}"] = g.game_id.map(home + away)
 
     g["spread_edge"] = betting.spread_edge(g, "spread_open")
     g["total_edge"] = betting.total_edge(g, "total_open")
