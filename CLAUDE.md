@@ -36,7 +36,12 @@ uv sync
 uv run jupyter lab
 uv run pytest
 uv run python scripts/make_notebooks.py   # after editing markets.py
+uv run python scripts/tune_team_points.py  # Optuna, ~30-60 min
+uv run python scripts/predict_week.py      # next slate's card (needs CFBD_API_KEY)
 ```
+
+- The 2025 test in `04_team_total/full_game` is run once. Don't re-tune or re-select
+  models after looking at it; any change must be justified on CV/2024 and logged.
 
 ## Where things live
 - Notebooks: `notebooks/{00_data,01_winner,02_spread,03_total,04_team_total,99_evaluation}/`

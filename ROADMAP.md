@@ -15,12 +15,14 @@ Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
 - [ ] Weather features (needs a source)
 
 ## v0.2 — points per team model (full game)
-- [ ] Model the market residual: points vs opening-line implied points
-- [ ] Walk-forward CV + Optuna for linear, GLM, RF, XGBoost, LightGBM, CatBoost
-- [ ] Ensemble / stacking on validation (2024)
-- [ ] Test once on 2025
-- [ ] Derive spread, total and winner from team points; compare vs closing lines
-- [ ] Weekly predictions for 2026
+- [x] Market layer vs opening line (#7): tested; dropped (spreads noise, totals = base-rate artifact)
+- [x] Walk-forward CV + Optuna for linear, GLM, RF, XGBoost, LightGBM, CatBoost
+- [x] Ensemble / stacking; final picked on 2024 (random forest)
+- [x] Test once on 2025: MAE 8.94 vs market 8.70 open / 8.59 close
+- [x] Derive spread, total from team points; graded vs open and close
+- [x] Weekly predictions for 2026 (`scripts/predict_week.py`) + paper-trading log
+- [ ] Weekly grading script: win %, ROI, CLV of logged paper bets
+- [ ] Winner (moneyline) probabilities from predicted margin
 
 ## v0.3 — dedicated markets
 - [ ] Dedicated spread, total and winner models: do they beat the derived version?
@@ -36,3 +38,4 @@ Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
 - ESPN ingestion + EDA (2026-09-23)
 - Feature engineering v1: ratings 11.1 → 9.44 CV MAE (2026-09-23)
 - CFBD ingestion + features v2: 9.30 CV MAE; first backtest vs lines (2026-09-23)
+- Tuned zoo + ensemble + 2025 test; paper trading starts 2026 week 4 (2026-09-23)

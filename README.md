@@ -32,7 +32,11 @@ canes-cfb-analytics/
 │   ├── validation.py       # time split + walk-forward CV
 │   └── paths.py            # data/notebook paths
 ├── scripts/
-│   └── make_notebooks.py   # generates notebook skeletons from the registry
+│   ├── make_notebooks.py   # generates notebook skeletons from the registry
+│   ├── tune_team_points.py # Optuna for every model → models/team_points_params.json
+│   └── predict_week.py     # next slate's predictions + paper bets
+├── models/                 # tuned params + final recipe (JSON, committed)
+├── paper_trading/          # pre-registered picks, logged before kickoff
 ├── data/                   # raw → interim → processed → predictions (git-ignored)
 ├── docs/
 │   ├── pipeline.md         # EDA findings, features, split, models, tuning, ensemble
@@ -74,6 +78,7 @@ uv sync
 uv run pre-commit install
 uv run jupyter lab
 uv run pytest
+uv run python scripts/predict_week.py   # this week's predictions and card
 ```
 
 Data access needs a free CollegeFootballData API key in your shell profile

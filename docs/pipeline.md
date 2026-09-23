@@ -112,6 +112,23 @@ metric that maps directly to points). ~100 trials per model.
 Keep whichever wins on validation; if the ensemble doesn't beat the best single model,
 use the single model.
 
+**Market layer (two-stage):** CFBD opening lines only exist from 2021, too few seasons
+to train a full model against the market. So the points model stays market-blind
+(trained 2016+). A tiny regularized logistic regression (`canes_cfb.market`: edge,
+edge × early season, line size) learns how much to trust the edge vs. the opener. It's
+fit on out-of-fold 2021–2023 games, checked on 2024, and refit through 2024 for the
+2025 test.
+
+Code: `src/canes_cfb/modeling.py` (model zoo, Optuna spaces, walk-forward predictions),
+`scripts/tune_team_points.py` (→ `models/team_points_params.json`),
+`notebooks/04_team_total/full_game.ipynb` (ensemble, validation, market layer, test →
+`models/team_points_final.json`).
+
+**Results (2026-09-23):** see `docs/experiments/2026-09-23_team_points_tuned_ensemble_test2025.md`.
+Final model: random forest (on the ratings residual). 2025 test MAE 8.94, against the
+market's 8.70 (open) and 8.59 (close). The market layer was dropped. Paper-trading rule:
+totals, |edge| ≥ 4 vs the opening total.
+
 ## 5. Metrics
 
 | Metric | For |
@@ -121,7 +138,7 @@ use the single model.
 | Cover % / over % against the line, ROI at −110 | What matters for betting (break-even at −110 is 52.4%) |
 | Calibration | When the model says 60%, does it happen 60% of the time? |
 
-## 6. Weekly prediction
+## 6. Weekly prediction (`scripts/predict_week.py`)
 
 After the final test: refit the chosen model on 2015–2025 (plus 2026 to date), compute
 this week's features as-of kickoff, predict points for both teams in each game, derive

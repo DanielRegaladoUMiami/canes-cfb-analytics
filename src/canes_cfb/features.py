@@ -449,3 +449,39 @@ def cumulative_sets(include_v2: bool = True) -> dict[str, list[str]]:
         cols = cols + feats
         out[("+" if out else "") + name] = list(cols)
     return out
+
+
+def add_market_lines(
+    features: pd.DataFrame, lines: pd.DataFrame, games: pd.DataFrame
+) -> pd.DataFrame:
+    """Attach consensus lines and each team's market-implied points (benchmark, not a feature).
+
+    Home implied = total/2 - spread/2; away implied = total/2 + spread/2, using ESPN's
+    home team (also at neutral sites, where CFBD lists the same home team).
+    """
+    cols = ["game_id", "spread_close", "total_close", "spread_open", "total_open"]
+    out = features.merge(lines[cols], on="game_id", how="left").merge(
+        games[["game_id", "home_id"]], on="game_id", how="left"
+    )
+    is_home = out["team_id"] == out["home_id"]
+    for kind, name in (("close", "market_points"), ("open", "market_points_open")):
+        total, spread = out[f"total_{kind}"], out[f"spread_{kind}"]
+        out[name] = (total / 2 - spread / 2).where(is_home, total / 2 + spread / 2)
+    return out.drop(columns="home_id")
+
+
+def build_all(raw_dir) -> pd.DataFrame:
+    """Full feature table (v1 + v2 + market lines) from the parquet files in ``raw_dir``."""
+
+    def read(name: str) -> pd.DataFrame:
+        return pd.read_parquet(raw_dir / f"{name}.parquet")
+
+    games = read("games")
+    feats = build_features(
+        games,
+        advanced=read("advanced"),
+        talent=read("talent"),
+        returning=read("returning"),
+        teams=read("teams"),
+    )
+    return add_market_lines(feats, read("lines"), games)

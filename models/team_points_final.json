@@ -1,0 +1,24 @@
+{
+  "final": "random_forest",
+  "models": [
+    "ridge",
+    "poisson",
+    "random_forest",
+    "lightgbm",
+    "xgboost",
+    "catboost"
+  ],
+  "top3": [
+    "xgboost",
+    "catboost",
+    "lightgbm"
+  ],
+  "stack_weights": {
+    "ridge": 0.453488,
+    "poisson": 0.103449,
+    "random_forest": 0.041437,
+    "lightgbm": 0.056978,
+    "xgboost": 0.333488,
+    "catboost": 0.0
+  }
+}
