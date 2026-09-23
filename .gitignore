@@ -225,3 +225,6 @@ data/**/*
 
 # venv lives outside iCloud sync (.venv is a symlink to it)
 .venv.nosync/
+
+# CatBoost training logs
+catboost_info/

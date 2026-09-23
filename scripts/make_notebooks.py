@@ -28,31 +28,30 @@ SUPPORT_NOTEBOOKS = [
     (
         "00_data",
         "01_ingest_games.ipynb",
-        "Ingest games and scores",
-        "Pull every FBS game (schedule, venue, neutral site, final score) into `data/raw/`.",
-        ["Pull seasons", "Validate (one row per game, no duplicates)", "Save to data/raw"],
+        "Ingest games and quarter scores (ESPN)",
+        "Every FBS game since 2015 with points by quarter, into `data/raw/games.parquet`.",
+        ["Download", "Validate", "Save"],
     ),
     (
         "00_data",
-        "02_ingest_line_scores.ipynb",
-        "Ingest scoring by quarter",
-        "Pull quarter-by-quarter line scores (Q1-Q4 + OT) so every period target can be built.",
-        ["Pull line scores", "Check quarters sum to the final score", "Save to data/raw"],
+        "02_ingest_lines.ipynb",
+        "Ingest betting lines (CFBD)",
+        "Opening and closing spread, total and moneyline per game.",
+        ["Pull lines", "Normalize to home perspective", "Join to games", "Save"],
     ),
     (
         "00_data",
-        "03_ingest_betting_lines.ipynb",
-        "Ingest betting lines",
-        "Pull opening and closing lines for every market and period we model.",
-        ["Pull lines", "Normalize to home-perspective conventions", "Save to data/raw"],
+        "03_eda.ipynb",
+        "EDA: understand the data",
+        "Is there enough data, what does the target look like, and is it stable over time?",
+        ["Volume", "Target distribution", "Trend by season", "Home field", "Quarters"],
     ),
     (
         "00_data",
-        "04_build_feature_table.ipynb",
-        "Build the shared feature table",
-        "One row per game with as-of features (known before kickoff) plus every period target. "
-        "Every model notebook reads this table.",
-        ["Targets per period", "Team ratings and efficiency features", "Save to data/processed"],
+        "04_feature_engineering.ipynb",
+        "Feature engineering",
+        "As-of, opponent-adjusted team features. Writes `data/processed/team_games.parquet`.",
+        ["Team-game table", "Raw form", "Opponent-adjusted ratings", "Context", "Save"],
     ),
     (
         "99_evaluation",
@@ -80,7 +79,8 @@ SUPPORT_NOTEBOOKS = [
 SUPPORT_READMES = {
     "00_data": (
         "Data",
-        "Ingestion and the shared feature table. Run these in order before any model notebook.",
+        "Shared pipeline stages: ingest, EDA, feature engineering. Run in order before any "
+        "model notebook. See `docs/pipeline.md`.",
     ),
     "99_evaluation": (
         "Evaluation",

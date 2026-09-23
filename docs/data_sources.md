@@ -1,15 +1,21 @@
 # Data sources
 
-| Need | Source | Notes |
+| Need | Source | Status |
 |---|---|---|
-| Games, venue, neutral site, final score | CollegeFootballData (CFBD) `/games` | Needs `CFBD_API_KEY` (free) |
-| Quarter-by-quarter scores (Q1–Q4, OT) | CFBD `/games` (`homeLineScores` / `awayLineScores`) | Required for every half and quarter target |
-| Full-game spread, total, moneyline | CFBD `/lines` | Several books per game; open and close |
-| Team ratings, EPA/PPA, tempo | CFBD `/ratings/*`, `/ppa/*`, `/stats/*` | Use as-of values only |
-| Schedule and live scores (fallback) | ESPN scoreboard (`groups=80`) | Free, no key |
-| Half, quarter, and team-total lines | **Open question.** CFBD mostly covers full-game lines. | See issue on period lines |
+| Games, venue, neutral site, conference game, final score | ESPN scoreboard (`groups=80`) | **Done.** 2015–2026 in `data/raw/games.parquet` |
+| Points by quarter (Q1–Q4, OT) | ESPN scoreboard `linescores` | **Done.** Every completed game since 2015 |
+| Full-game spread, total, moneyline (open + close) | CollegeFootballData (CFBD) `/lines` | Needs `CFBD_API_KEY` |
+| Team efficiency: EPA/PPA, success rate, plays (tempo) | CFBD `/ppa/*`, `/stats/*` | Needs `CFBD_API_KEY` |
+| Half, quarter and team-total lines | **Open question** (issue #4). CFBD mostly covers full-game lines. | |
 
-## API key
+## ESPN notes
+- Free, no key. Client: `src/canes_cfb/espn.py`. Raw JSON is cached in `data/raw/espn/`.
+- FCS opponents appear in the FBS scoreboard. A team is flagged FBS in a season if it has
+  6+ games in that season's FBS scoreboard (`home_fbs` / `away_fbs`).
+- 3 games were shortened by weather (`shortened = True`); they have no Q4.
+- No historical betting lines.
+
+## CFBD API key
 
 Put the key in `~/.zshrc`, never in a notebook or in chat:
 

@@ -18,7 +18,7 @@ evaluation notebooks.
 ```
 canes-cfb-analytics/
 ├── notebooks/
-│   ├── 00_data/            # ingest games, quarter scores, lines → shared feature table
+│   ├── 00_data/            # ingest (ESPN, CFBD) → EDA → feature engineering
 │   ├── 01_winner/          # full_game.ipynb
 │   ├── 02_spread/          # full_game, 1H, 2H, Q1, Q2, Q3, Q4
 │   ├── 03_total/           # full_game, 1H, 2H, Q1, Q2, Q3, Q4
@@ -26,11 +26,13 @@ canes-cfb-analytics/
 │   └── 99_evaluation/      # backtest, calibration, weekly card
 ├── src/canes_cfb/          # shared code imported by notebooks
 │   ├── markets.py          # market × period registry: the single source of truth
+│   ├── espn.py             # ESPN games + quarter scores client (cached)
 │   └── paths.py            # data/notebook paths
 ├── scripts/
 │   └── make_notebooks.py   # generates notebook skeletons from the registry
 ├── data/                   # raw → interim → processed → predictions (git-ignored)
 ├── docs/
+│   ├── pipeline.md         # EDA findings, features, split, models, tuning, ensemble
 │   ├── markets.md          # target definitions, sign conventions, OT rules
 │   ├── data_sources.md     # where each piece of data comes from
 │   └── experiments/        # one log entry per model version
@@ -39,16 +41,17 @@ canes-cfb-analytics/
 
 ## Workflow
 
-1. **Data**: run `notebooks/00_data/` in order. The last notebook writes one feature table
-   with every period target, so every model starts from the same rows.
-2. **Model**: each notebook follows the same sections: load, target and features,
-   baseline (the line), model, evaluation against the line, and this week's predictions.
-3. **Evaluate**: `99_evaluation/` compares every market in one table and builds the
-   weekly card.
+Full detail in [`docs/pipeline.md`](docs/pipeline.md).
+
+1. **Data**: `00_data/`: ingest → EDA (is there enough data?) → feature engineering.
+2. **Model**: each market notebook runs split → walk-forward CV + Optuna for each model
+   (linear, GLM, RF, XGBoost, LightGBM, CatBoost) → compare → ensemble/stacking →
+   test once → predict this week. The first model is points per team (`04_team_total/full_game`).
+3. **Evaluate**: `99_evaluation/` compares every market and builds the weekly card.
 
 Rules that apply to every notebook:
 - **As-of features only.** Nothing that wasn't known before kickoff.
-- **Walk-forward splits** by season and week. No random train/test splits.
+- **Split by time**, never random: train 2015–2023, validation 2024, test 2025 (once).
 - **The closing line is the benchmark.** A model that can't beat it has no edge.
 
 ## Adding a market or period

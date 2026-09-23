@@ -12,7 +12,7 @@ period, all judged against the closing line.
 - Jupyter notebooks for models; shared code in `src/canes_cfb/`
 
 ## Current milestone
-v0.1: data foundation (games, quarter scores, lines → shared feature table)
+v0.1: data foundation. ESPN games + EDA done; next CFBD lines and feature engineering.
 
 ## Local rules
 - Conventional Commits (feat:, fix:, docs:, refactor:, chore:, test:)
@@ -24,7 +24,9 @@ v0.1: data foundation (games, quarter scores, lines → shared feature table)
   first, then run `scripts/make_notebooks.py`. Never hand-create model notebooks.
 - Home-perspective conventions everywhere (see `docs/markets.md`). 2H includes OT,
   quarters don't.
-- As-of features only; walk-forward splits by season/week; closing line is the baseline.
+- As-of features only. Split by time: train 2015–2023, validation 2024, test 2025
+  (touched once). CV is walk-forward by season. Never random splits. See `docs/pipeline.md`.
+- First model: points per team (full game); spread/total/winner derive from it.
 - Logic reused by 2+ notebooks moves into `src/canes_cfb/` with a test.
 - `CFBD_API_KEY` lives in `~/.zshrc`. Never in notebooks, never pasted in chat.
 
@@ -40,6 +42,7 @@ uv run python scripts/make_notebooks.py   # after editing markets.py
 - Notebooks: `notebooks/{00_data,01_winner,02_spread,03_total,04_team_total,99_evaluation}/`
 - Shared code: `src/canes_cfb/`
 - Data (git-ignored): `data/{raw,interim,processed,predictions}/`
+- Pipeline plan (features, split, models): `docs/pipeline.md`
 - Market rules: `docs/markets.md`; data sources: `docs/data_sources.md`
 - Experiments: `docs/experiments/`
 - Roadmap: `ROADMAP.md`
