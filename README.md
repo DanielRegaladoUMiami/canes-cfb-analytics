@@ -20,6 +20,16 @@ evaluation notebooks.
 decisions and corrections). Built with Quarto + LaTeX from `report/`; every table and
 figure is computed from the data. Rebuild with `cd report && quarto render`.
 
+## Weekly card (website)
+
+`site/index.html` is the weekly card: predicted score for every FBS game, win
+probability (model vs market), spread and total with **historically calibrated**
+probabilities and expected value at −110, every half and quarter, the paper bets, an
+explainer of probability/ROI/risk with a risk calculator, and automated verification
+checks. Built by `scripts/build_site.py` from the latest predictions and
+`models/calibration.json` (`scripts/calibrate.py`, out-of-sample 2021–2025). The GitHub
+Action rebuilds it every Wednesday.
+
 ## Repo layout
 
 ```

@@ -1,0 +1,75 @@
+{
+  "seasons": "2021-2025",
+  "games": 3943,
+  "sigma_margin": 16.038136023257586,
+  "sigma_total": 16.220531473555884,
+  "mae_margin": 12.736938404709553,
+  "mae_total": 12.943219540599943,
+  "win_reliability": [
+    {
+      "predicted": 0.0637,
+      "actual": 0.0737,
+      "n": 95
+    },
+    {
+      "predicted": 0.1526,
+      "actual": 0.1576,
+      "n": 165
+    },
+    {
+      "predicted": 0.2512,
+      "actual": 0.2769,
+      "n": 307
+    },
+    {
+      "predicted": 0.3549,
+      "actual": 0.3629,
+      "n": 383
+    },
+    {
+      "predicted": 0.4513,
+      "actual": 0.4257,
+      "n": 498
+    },
+    {
+      "predicted": 0.5507,
+      "actual": 0.5299,
+      "n": 585
+    },
+    {
+      "predicted": 0.6494,
+      "actual": 0.657,
+      "n": 551
+    },
+    {
+      "predicted": 0.7501,
+      "actual": 0.7652,
+      "n": 494
+    },
+    {
+      "predicted": 0.8468,
+      "actual": 0.8452,
+      "n": 465
+    },
+    {
+      "predicted": 0.9471,
+      "actual": 0.955,
+      "n": 400
+    }
+  ],
+  "spread_vs_open": {
+    "intercept": -0.004627805682436339,
+    "coef": {
+      "edge": -0.0005491999029311938
+    },
+    "n": 3875
+  },
+  "total_vs_open": {
+    "intercept": -0.05696058345095878,
+    "coef": {
+      "edge": 0.01865511592969282,
+      "shootout": -0.21663916740367975
+    },
+    "n": 3908
+  }
+}
