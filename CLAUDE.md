@@ -27,8 +27,6 @@ v0.1: data foundation (games, quarter scores, lines → shared feature table)
 - As-of features only; walk-forward splits by season/week; closing line is the baseline.
 - Logic reused by 2+ notebooks moves into `src/canes_cfb/` with a test.
 - `CFBD_API_KEY` lives in `~/.zshrc`. Never in notebooks, never pasted in chat.
-- Related repo `cfb-canes-analytics` (Kalshi/Polymarket totals). Reuse its clients if
-  exchange prices are needed.
 
 ## How to run
 ```bash

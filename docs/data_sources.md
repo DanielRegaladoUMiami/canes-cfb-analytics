@@ -18,9 +18,3 @@ export CFBD_API_KEY=...
 ```
 
 Notebooks read it with `os.environ["CFBD_API_KEY"]`.
-
-## Related repo
-
-[`cfb-canes-analytics`](https://github.com/DanielRegaladoUMiami/cfb-canes-analytics)
-already has working Kalshi, Polymarket, and ESPN clients for full-game totals. Reuse its
-code instead of rewriting it if exchange prices are needed here.
