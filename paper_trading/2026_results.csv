@@ -1,1 +1,1 @@
-logged_utc,game_id,season,week,start_utc,away,home,total_open,pred_total,total_edge,total_pick,total_close,final_total,result,units,clv
+logged_utc,rule,game_id,season,week,start_utc,away,home,total_open,pred_total,total_edge,total_pick,exp_total,total_close,final_total,result,units,clv

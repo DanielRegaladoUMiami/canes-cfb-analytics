@@ -8,11 +8,15 @@
 4. Predict both teams' points for the next slate, derive spread and total.
 5. Price edges against the opening lines and flag the pre-registered paper bets.
 
-Paper-bet rule (fixed 2026-09-23, before any 2026 prediction was graded): totals only,
-bet the side the model likes when |model total - opening total| >= 4 points. It's the
-only rule above break-even in both 2024 (validation) and 2025 (test). The sample is
-small, so it's tracked on paper through 2026, not bet with money. Spread edges are
-listed for tracking only.
+Paper-bet rules (fixed 2026-09-23, before any 2026 prediction was graded), totals only,
+tracked on paper through 2026, never real money:
+  A. "edge4": bet the side the model likes when |model total - opening total| >= 4.
+     Only rule above break-even in both 2024 (validation) and 2025 (test).
+  B. "shootout_under": bet the under when the ratings expect a shootout
+     (exp_total > 63.5, the top 20% of 2016-2023). Under 55-60% every season 2021-2025;
+     56.4% vs the opening total over 2021-2025 (509 games). See
+     notebooks/00_data/05_nonlinearity_insights.ipynb.
+Spread edges are listed for tracking only.
 
 Output: data/predictions/<season>_<type>_w<week>.parquet (full card, local) and new paper
 bets appended to paper_trading/<season>_bets.csv (committed, so each pick is timestamped
@@ -39,7 +43,8 @@ from canes_cfb.paths import PREDICTIONS, PROCESSED, RAW, ROOT
 from canes_cfb.periods import PERIODS, add_period_shares, add_period_targets, fit_predict_period
 
 SEASON = 2026
-PAPER_TOTAL_EDGE = 4.0  # points vs the opening total
+PAPER_TOTAL_EDGE = 4.0  # rule A: points vs the opening total
+SHOOTOUT_EXP_TOTAL = 63.5  # rule B: top 20% of exp_total, 2016-2023
 
 
 def refresh() -> None:
@@ -98,7 +103,8 @@ def main() -> None:
 
     games = pd.read_parquet(RAW / "games.parquet")
     keep = ["game_id", "team_id", "team", "opp", "pred", "season", "season_type", "week",
-            "start_utc", "spread_open", "spread_close", "total_open", "total_close"]  # fmt: skip
+            "start_utc", "spread_open", "spread_close", "total_open", "total_close",
+            "exp_total"]  # fmt: skip
     g = betting.to_games(rows[keep], games).rename(columns={"team": "home", "opp": "away"})
     for p in PERIODS:
         side = rows[["game_id", "team_id", f"pred_{p.value}"]].merge(
@@ -115,7 +121,11 @@ def main() -> None:
     g["total_pick"] = (
         (g.total_edge > 0).map({True: "over", False: "under"}).where(g.total_edge.notna())
     )
-    g["paper_bet"] = g.total_edge.abs() >= PAPER_TOTAL_EDGE
+    rule_a = g.assign(rule="edge4")[g.total_edge.abs() >= PAPER_TOTAL_EDGE]
+    rule_b = g.assign(rule="shootout_under", total_pick="under")[
+        (g.exp_total > SHOOTOUT_EXP_TOTAL) & g.total_open.notna()
+    ]
+    bets = pd.concat([rule_a, rule_b], ignore_index=True)
 
     PREDICTIONS.mkdir(parents=True, exist_ok=True)
     name = f"{int(slate.season)}_{int(slate.season_type)}_w{int(slate.week)}.parquet"
@@ -130,26 +140,29 @@ def main() -> None:
     order = g.start_utc.sort_values().index
     print(card.loc[order].round(1).to_string(index=False))
 
-    bets = g[g.paper_bet].sort_values("total_edge", key=abs, ascending=False)
-    print(f"\nPaper bets (totals, |edge| >= {PAPER_TOTAL_EDGE} vs opening total): {len(bets)}")
+    print(f"\nPaper bets: {len(bets)} (A: |edge| >= {PAPER_TOTAL_EDGE}; "
+          f"B: under when exp_total > {SHOOTOUT_EXP_TOTAL})")  # fmt: skip
     if len(bets):
-        cols = ["away", "home", "total_open", "total_close", "pred_total", "total_edge",
-                "total_pick"]  # fmt: skip
+        cols = ["rule", "away", "home", "total_open", "total_close", "pred_total", "exp_total",
+                "total_edge", "total_pick"]  # fmt: skip
         print(bets[cols].round(1).to_string(index=False))
     log_paper_bets(bets)
     print(f"\nsaved {PREDICTIONS / name}")
 
 
 def log_paper_bets(bets: pd.DataFrame) -> None:
-    """Append new paper bets; a game already logged keeps its first (pre-kickoff) pick."""
+    """Append new paper bets; a (game, rule) already logged keeps its first pre-kickoff pick."""
     path = ROOT / "paper_trading" / f"{SEASON}_bets.csv"
     new = bets.assign(logged_utc=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M"))[
-        ["logged_utc", "game_id", "season", "week", "start_utc", "away", "home", "total_open",
-         "pred_total", "total_edge", "total_pick"]
+        ["logged_utc", "rule", "game_id", "season", "week", "start_utc", "away", "home",
+         "total_open", "pred_total", "exp_total", "total_edge", "total_pick"]
     ].round(2)  # fmt: skip
     if path.exists():
         old = pd.read_csv(path)
-        new = new[~new.game_id.isin(old.game_id)]
+        if "rule" not in old.columns:  # log started before rule B existed: all were rule A
+            old.insert(1, "rule", "edge4")
+        seen = set(zip(old.game_id, old.rule, strict=True))
+        new = new[[k not in seen for k in zip(new.game_id, new.rule, strict=True)]]
         new = pd.concat([old, new], ignore_index=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     new.to_csv(path, index=False)

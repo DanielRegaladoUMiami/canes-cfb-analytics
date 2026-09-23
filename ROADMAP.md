@@ -21,7 +21,10 @@ Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
 - [x] Test once on 2025: MAE 8.94 vs market 8.70 open / 8.59 close
 - [x] Derive spread, total from team points; graded vs open and close
 - [x] Weekly predictions for 2026 (`scripts/predict_week.py`) + paper-trading log
-- [ ] Weekly grading script: win %, ROI, CLV of logged paper bets
+- [x] Weekly grading script + GitHub Action (Wednesdays)
+- [x] Nonlinearity insights (SHAP + market lens): shootout-under effect; paper rule B
+- [x] Half/quarter team-points models (accuracy; no period lines yet)
+- [ ] Totals model built on the nonlinear insights (shootout, pace tail, talent tails, low returning production)
 - [ ] Winner (moneyline) probabilities from predicted margin
 
 ## v0.3 — dedicated markets

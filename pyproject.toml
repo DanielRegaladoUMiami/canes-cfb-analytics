@@ -20,6 +20,7 @@ dependencies = [
     "lightgbm>=4.7.0",
     "catboost>=1.2.10",
     "tabulate>=0.10.0",
+    "shap>=0.51.0",
 ]
 
 [build-system]
