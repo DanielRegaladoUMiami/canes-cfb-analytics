@@ -199,6 +199,18 @@ def tune(
     return study
 
 
+def models_needed(recipe: dict) -> list[str]:
+    """Base models the final recipe actually uses (a single model needs only itself)."""
+    final = recipe["final"]
+    if final in recipe["models"]:
+        return [final]
+    if final == "average (top 3)":
+        return list(recipe["top3"])
+    if final == "stacking (NNLS)":
+        return [m for m, w in recipe["stack_weights"].items() if w > 0]
+    return list(recipe["models"])
+
+
 def ensemble_predict(preds: pd.DataFrame, recipe: dict) -> pd.Series:
     """Apply the final recipe saved by notebooks/04_team_total/full_game.ipynb."""
     final = recipe["final"]

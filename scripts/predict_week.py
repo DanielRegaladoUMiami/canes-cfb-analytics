@@ -28,7 +28,7 @@ import pandas as pd
 
 from canes_cfb import betting, cfbd, espn
 from canes_cfb.features import build_all
-from canes_cfb.modeling import SPECS, ensemble_predict, fit_predict
+from canes_cfb.modeling import SPECS, ensemble_predict, fit_predict, models_needed
 from canes_cfb.paths import PREDICTIONS, PROCESSED, RAW, ROOT
 
 SEASON = 2026
@@ -37,11 +37,16 @@ PAPER_TOTAL_EDGE = 4.0  # points vs the opening total
 
 def refresh() -> None:
     seasons = list(range(2015, SEASON + 1))
+    RAW.mkdir(parents=True, exist_ok=True)
     espn.load_seasons(seasons).to_parquet(RAW / "games.parquet", index=False)
     cfbd.load_lines(seasons, current_season=SEASON).to_parquet(RAW / "lines.parquet", index=False)
     cfbd.load_advanced(seasons, current_season=SEASON).to_parquet(
         RAW / "advanced.parquet", index=False
     )
+    # Season-level priors: cached after the first run, so these cost CFBD calls only once.
+    cfbd.load_talent(seasons).to_parquet(RAW / "talent.parquet", index=False)
+    cfbd.load_returning(seasons).to_parquet(RAW / "returning.parquet", index=False)
+    cfbd.load_teams().to_parquet(RAW / "teams.parquet", index=False)
 
 
 def main() -> None:
@@ -65,7 +70,7 @@ def main() -> None:
     params = json.loads((ROOT / "models" / "team_points_params.json").read_text())
     train = features[features.completed & ~features.shortened & (features.season >= 2016)]
     base_preds = pd.DataFrame(
-        {m: fit_predict(SPECS[m], params[m]["params"], train, rows) for m in recipe["models"]},
+        {m: fit_predict(SPECS[m], params[m]["params"], train, rows) for m in models_needed(recipe)},
         index=rows.index,
     )
     rows["pred"] = ensemble_predict(base_preds, recipe)

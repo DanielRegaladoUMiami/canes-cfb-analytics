@@ -63,3 +63,22 @@ def test_market_layer_learns_that_edges_win():
     assert p[g.pred_margin > 8].mean() > 0.6 > 0.4 > p[g.pred_margin < -2].mean()
     table = market.grade_by_confidence(p, g, "spread", thresholds=(0.5, 0.6))
     assert table.loc[1, "win %"] > table.loc[0, "win %"] > 50
+
+
+def test_grade_paper_totals():
+    bets = pd.DataFrame(
+        {"game_id": [1, 2, 3, 4], "total_open": [50.0, 50.0, 50.0, 50.0],
+         "total_pick": ["over", "under", "over", "over"]}
+    )  # fmt: skip
+    games = pd.DataFrame(
+        {"game_id": [1, 2, 3, 4], "completed": [True, True, True, False],
+         "home_points": [30.0, 30.0, 25.0, np.nan], "away_points": [24.0, 24.0, 25.0, np.nan]}
+    )  # fmt: skip
+    lines = pd.DataFrame({"game_id": [1, 2, 3, 4], "total_close": [52.0, 52.0, 49.0, 50.0]})
+    graded = betting.grade_paper_totals(bets, games, lines).set_index("game_id")
+    assert list(graded.index) == [1, 2, 3]  # game 4 not final yet
+    assert list(graded.result) == ["win", "loss", "push"]
+    assert list(graded.clv) == [2.0, -2.0, -1.0]  # over 50 -> closed 52 is +2 for the over
+    summary = betting.summarize(graded.reset_index())
+    assert summary["record"] == "1-1-1"
+    assert summary["units"] == round(100 / 110 - 1, 2)

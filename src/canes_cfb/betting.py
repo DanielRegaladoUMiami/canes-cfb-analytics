@@ -88,3 +88,40 @@ def grade(
             row["avg CLV"] = float(clv[take].mean()) if n else np.nan
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def grade_paper_totals(
+    bets: pd.DataFrame, games: pd.DataFrame, lines: pd.DataFrame
+) -> pd.DataFrame:
+    """Grade logged total bets once their games are final.
+
+    Adds the final total, the closing total, ``result`` ("win", "loss", "push") graded
+    against the opening total the bet was placed at, profit in units at -110, and CLV
+    (points the total moved toward the pick between open and close).
+    """
+    done = games.loc[games["completed"], ["game_id", "home_points", "away_points"]]
+    out = bets.merge(done, on="game_id", how="inner").merge(
+        lines[["game_id", "total_close"]], on="game_id", how="left", suffixes=("_logged", "")
+    )
+    out["final_total"] = out["home_points"] + out["away_points"]
+    side = np.where(out["total_pick"] == "over", 1, -1)
+    diff = side * (out["final_total"] - out["total_open"])
+    out["result"] = np.select([diff > 0, diff < 0], ["win", "loss"], default="push")
+    out["units"] = np.select([diff > 0, diff < 0], [PAYOUT_110, -1.0], default=0.0)
+    out["clv"] = side * (out["total_close"] - out["total_open"])
+    return out.drop(columns=["home_points", "away_points"])
+
+
+def summarize(graded: pd.DataFrame) -> dict:
+    """W-L-P, win % (pushes excluded), ROI per unit risked, average CLV."""
+    wins, losses = int((graded.result == "win").sum()), int((graded.result == "loss").sum())
+    pushes = int((graded.result == "push").sum())
+    decided = wins + losses
+    return {
+        "bets": len(graded),
+        "record": f"{wins}-{losses}-{pushes}",
+        "win %": round(100 * wins / decided, 1) if decided else None,
+        "units": round(float(graded.units.sum()), 2),
+        "ROI %": round(100 * graded.units.sum() / decided, 1) if decided else None,
+        "avg CLV": round(float(graded.clv.mean()), 2) if len(graded) else None,
+    }

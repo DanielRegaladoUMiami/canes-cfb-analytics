@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from canes_cfb.modeling import ensemble_predict
+from canes_cfb.modeling import ensemble_predict, models_needed
 
 PREDS = pd.DataFrame({"a": [10.0, 20.0], "b": [20.0, 30.0], "c": [30.0, 40.0]})
 RECIPE = {"models": ["a", "b", "c"], "top3": ["a", "b", "c"],
@@ -24,3 +24,9 @@ def test_ensemble_recipes(final, expected):
 def test_unknown_recipe_fails():
     with pytest.raises(ValueError):
         ensemble_predict(PREDS, {**RECIPE, "final": "magic"})
+
+
+def test_models_needed():
+    assert models_needed({**RECIPE, "final": "b"}) == ["b"]
+    assert models_needed({**RECIPE, "final": "stacking (NNLS)"}) == ["a", "b"]
+    assert models_needed({**RECIPE, "final": "average (all)"}) == ["a", "b", "c"]

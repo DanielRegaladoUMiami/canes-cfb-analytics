@@ -1,0 +1,54 @@
+# Every Wednesday: grade last week's paper bets, predict the next slate, log new picks.
+# Needs the CFBD_API_KEY repository secret (Settings → Secrets → Actions).
+name: weekly-predictions
+
+on:
+  schedule:
+    - cron: "0 13 * * 3" # Wednesdays 13:00 UTC (9:00 ET), before the Thursday games
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: weekly-predictions
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      # API responses (ESPN + CFBD). Restores the latest run's cache so finished weeks
+      # aren't downloaded again; the current season is always refreshed.
+      - uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: raw-${{ github.run_id }}
+          restore-keys: raw-
+
+      - name: Predict next slate and log paper bets
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: uv run python scripts/predict_week.py
+
+      - name: Grade paper bets
+        run: uv run python scripts/grade_paper.py
+
+      - name: Commit picks and results
+        run: |
+          git config user.name "Daniel Regalado"
+          git config user.email "250292867+DanielRegaladoUMiami@users.noreply.github.com"
+          git add paper_trading/
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+          else
+            git commit -m "chore: weekly paper picks and grading ($(date -u +%F))"
+            git push
+          fi
