@@ -34,6 +34,46 @@ def devig(home_ml: pd.Series, away_ml: pd.Series) -> pd.Series:
     return pd.Series(h / (h + a), index=home_ml.index)
 
 
+BEST_EV = 0.03  # "buen valor": at least +3% expected value per bet
+LIGHT_EV = 0.01  # "valor ligero": +1% to +3%; below that it's noise, so pass
+
+
+def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
+    """(tier, bet label, plain-language why) for a game's total. Spreads are never picked:
+    the model's spread edge hasn't beaten the opening line historically."""
+    per100 = round(100 * row.total_p_side)
+    line = f"{row.total_open:g}"
+    if conflict:
+        return (
+            "pass",
+            None,
+            f"Dos señales chocan: el modelo espera {row.pred_total:.0f} puntos (over {line}), "
+            f"pero parece un partido de muchos puntos, que suele ir under. Cuando pasa eso, "
+            f"históricamente es 50/50. Mejor pasar.",
+        )
+    if row.total_ev >= LIGHT_EV:
+        tier = "best" if row.total_ev >= BEST_EV else "light"
+        label = f"{row.total_side.capitalize()} {line}"
+        if row.shootout and row.total_side == "under":
+            why = (
+                f"Los partidos que parecen de muchos puntos (los ratings esperan "
+                f"{row.exp_total:.0f}) han terminado under unas {per100} de cada 100 veces "
+                f"desde 2021."
+            )
+        else:
+            why = (
+                f"El modelo espera {row.pred_total:.0f} puntos y la línea está en {line}. "
+                f"Apuestas así han ganado unas {per100} de cada 100 veces desde 2021."
+            )
+        return tier, label, why
+    return (
+        "pass",
+        None,
+        f"No hay ventaja suficiente: para ganarle a la comisión necesitas acertar 53 de cada "
+        f"100 y aquí andamos en {per100}.",
+    )
+
+
 def check(name: str, ok: bool | None, detail: str, warn: bool = False) -> dict:
     status = "pass" if ok else ("warn" if warn or ok is None else "fail")
     return {"name": name, "status": status, "detail": detail}
@@ -158,6 +198,9 @@ def main() -> None:
 
     records = []
     for row in g.sort_values("start_utc").itertuples():
+        game_rules = rules.get(row.game_id, [])
+        conflict = len({x["pick"] for x in game_rules}) > 1
+        tier, bet_label, why = verdict(row, conflict)
         periods = {
             p.value: {
                 "total": r(getattr(row, f"pred_total_{p.value}")),
@@ -178,14 +221,14 @@ def main() -> None:
                 "exp_total": r(row.exp_total),
                 "p_home_win": r(row.p_home_win, 3),
                 "p_home_win_market": r(row.p_home_win_market, 3),
-                "spread_open": r(row.spread_open),
-                "spread_now": r(row.spread_close),
+                "spread_open": r(row.spread_open, 2),
+                "spread_now": r(row.spread_close, 2),
                 "spread_edge": r(row.spread_edge),
                 "spread_side": row.spread_side,
                 "spread_p": r(row.spread_p_side, 3),
                 "spread_ev": r(row.spread_ev, 3),
-                "total_open": r(row.total_open),
-                "total_now": r(row.total_close),
+                "total_open": r(row.total_open, 2),
+                "total_now": r(row.total_close, 2),
                 "total_edge": r(row.total_edge),
                 "total_side": row.total_side,
                 "total_model_side": row.total_model_side,
@@ -193,6 +236,13 @@ def main() -> None:
                 "total_ev": r(row.total_ev, 3),
                 "shootout": bool(row.shootout),
                 "rules": rules.get(row.game_id, []),
+                "home_ml": r(row.home_ml, 0),
+                "away_ml": r(row.away_ml, 0),
+                "p_home_cover": r(row.p_home_cover, 3),
+                "p_over": r(row.p_over, 3),
+                "tier": tier,
+                "bet": bet_label,
+                "why": why,
                 "periods": periods,
             }
         )
