@@ -12,7 +12,7 @@ period, all judged against the closing line.
 - Jupyter notebooks for models; shared code in `src/canes_cfb/`
 
 ## Current milestone
-v0.1: data foundation. ESPN games + EDA done; next CFBD lines and feature engineering.
+v0.2: points-per-team model. Data, features v1+v2 and first backtest done; next Optuna + ensemble + market-residual model.
 
 ## Local rules
 - Conventional Commits (feat:, fix:, docs:, refactor:, chore:, test:)

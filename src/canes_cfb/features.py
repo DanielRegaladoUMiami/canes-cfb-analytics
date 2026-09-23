@@ -127,6 +127,7 @@ def ridge_ratings(
     alpha: float = 1.0,
     half_life_days: float = 120.0,
     window_days: int = 600,
+    target: str = "points",
 ) -> pd.DataFrame:
     """Opponent-adjusted offense/defense ratings, refit before every slate.
 
@@ -137,8 +138,13 @@ def ridge_ratings(
     current form as games accumulate. Ridge shrinks teams with little data toward average.
     Returns one row per (slate, team) with ``off``, ``def`` (higher = better defense),
     ``hfa_pts`` and ``intercept``.
+
+    ``target`` can be any per-team-game offensive stat (plays, EPA per play, success
+    rate...). The target is standardized before fitting so ``alpha`` means the same
+    shrinkage whatever the stat's scale; coefficients are returned in the stat's units.
     """
     hist = _history(tg)
+    hist = hist[hist[target].notna()]
     teams = pd.Index(sorted(tg["team_id"].unique()))
     n = len(teams)
     rows = []
@@ -160,8 +166,10 @@ def ridge_ratings(
         ).tocsr()
         age = (start - train["slate_start"]).dt.days.to_numpy()
         w = 0.5 ** (age / half_life_days)
-        model = Ridge(alpha=alpha).fit(x, train["points"].to_numpy(), sample_weight=w)
-        coef = model.coef_
+        y = train[target].to_numpy(float)
+        mu, sd = y.mean(), y.std() or 1.0
+        model = Ridge(alpha=alpha).fit(x, (y - mu) / sd, sample_weight=w)
+        coef = model.coef_ * sd
         rows.append(
             pd.DataFrame(
                 {
@@ -170,7 +178,7 @@ def ridge_ratings(
                     "off": coef[:n],
                     "def": -coef[n : 2 * n],
                     "hfa_pts": coef[-1],
-                    "intercept": model.intercept_,
+                    "intercept": mu + model.intercept_ * sd,
                 }
             )
         )
@@ -224,11 +232,106 @@ def elo_ratings(
     return pd.DataFrame(out, columns=["game_id", "team_id", "elo", "opp_elo"])
 
 
+# ---------------------------------------------------------------- v2: CFBD efficiency
+
+# Offensive stats adjusted for opponent (ratings per slate, like points).
+ADJUSTED_STATS = {
+    "plays": "o_plays",  # tempo
+    "ppa": "o_ppa",  # EPA per play
+    "sr": "o_successRate",
+    "expl": "o_explosiveness",
+    "pass_ppa": "o_pass_ppa",
+    "rush_ppa": "o_rush_ppa",
+}
+
+
+def attach_advanced(tg: pd.DataFrame, advanced: pd.DataFrame, teams: pd.DataFrame) -> pd.DataFrame:
+    """Add CFBD offensive stats to team-game rows (joined on game_id + team_id).
+
+    CFBD keys advanced stats by school name. Names are mapped to ids using FBS teams
+    only (some names repeat across divisions), and a row only counts if that team
+    actually played in that game.
+    """
+    fbs_ids = set(tg.loc[tg["fbs"], "team_id"])
+    name_to_id = teams[teams["team_id"].isin(fbs_ids)].drop_duplicates("team")
+    adv = advanced.merge(name_to_id, on="team", how="inner").drop(columns="team")
+    cols = ["game_id", "team_id", *ADJUSTED_STATS.values()]
+    out = tg.merge(adv[cols], on=["game_id", "team_id"], how="left")
+    return out.rename(columns={v: k for k, v in ADJUSTED_STATS.items()})
+
+
+def adjusted_stats(tg: pd.DataFrame, alpha: float = 1.0) -> pd.DataFrame:
+    """Opponent-adjusted offense/defense rating for every stat in ADJUSTED_STATS.
+
+    One row per (slate, team): ``{stat}_off``, ``{stat}_def`` (higher = better defense)
+    and ``{stat}_base`` (league intercept, for building expectations).
+    """
+    merged = None
+    for stat in ADJUSTED_STATS:
+        rr = ridge_ratings(tg, alpha=alpha, target=stat).rename(
+            columns={"off": f"{stat}_off", "def": f"{stat}_def", "intercept": f"{stat}_base"}
+        )
+        rr = rr.drop(columns="hfa_pts")
+        merged = rr if merged is None else merged.merge(rr, on=[*SLATE, "team_id"])
+    return merged
+
+
+def add_efficiency_features(tg: pd.DataFrame, adj: pd.DataFrame) -> pd.DataFrame:
+    """Team offense vs. opponent defense for each stat, plus pace × efficiency."""
+    opp_cols = [f"{s}_{side}" for s in ADJUSTED_STATS for side in ("off", "def")]
+    opp = adj[[*SLATE, "team_id", *opp_cols]].rename(
+        columns={"team_id": "opp_id", **{c: f"opp_{c}" for c in opp_cols}}
+    )
+    tg = tg.merge(adj, on=[*SLATE, "team_id"], how="left")
+    tg = tg.merge(opp, on=[*SLATE, "opp_id"], how="left")
+    for s in ADJUSTED_STATS:
+        # This offense against this defense, in the stat's own units.
+        tg[f"exp_{s}"] = tg[f"{s}_base"] + tg[f"{s}_off"] - tg[f"opp_{s}_def"]
+    # Pace × efficiency: expected plays times expected EPA per play (multiplicative).
+    tg["exp_pace_x_ppa"] = tg["exp_plays"] * tg["exp_ppa"]
+    # Game pace: both offenses' tempo (fast opponents give you more possessions too).
+    tg["game_pace"] = tg["plays_off"] + tg["opp_plays_off"]
+    # Unit matchups: which way this offense should attack this defense.
+    tg["pass_vs_rush_edge"] = tg["exp_pass_ppa"] - tg["exp_rush_ppa"]
+    return tg
+
+
+def add_priors(
+    tg: pd.DataFrame, talent: pd.DataFrame, returning: pd.DataFrame, teams: pd.DataFrame
+) -> pd.DataFrame:
+    """Season-level priors known before kickoff: roster talent and returning production."""
+    fbs_ids = set(tg["team_id"])
+    name_to_id = teams[teams["team_id"].isin(fbs_ids)].drop_duplicates("team")
+    season_prior = (
+        talent.merge(returning, on=["season", "team"], how="outer")
+        .merge(name_to_id, on="team", how="inner")
+        .drop(columns="team")
+    )
+    cols = ["talent", "ret_ppa", "ret_pass_ppa", "ret_rush_ppa", "ret_usage"]
+    tg = tg.merge(season_prior[["season", "team_id", *cols]], on=["season", "team_id"], how="left")
+    opp = season_prior[["season", "team_id", "talent", "ret_ppa"]].rename(
+        columns={"team_id": "opp_id", "talent": "opp_talent", "ret_ppa": "opp_ret_ppa"}
+    )
+    tg = tg.merge(opp, on=["season", "opp_id"], how="left")
+    tg["talent_diff"] = tg["talent"] - tg["opp_talent"]
+    return tg
+
+
 # ---------------------------------------------------------------- assemble
 
 
-def build_features(games: pd.DataFrame, **ridge_kwargs) -> pd.DataFrame:
-    """Feature table: one row per FBS-vs-FBS team-game with target ``points``."""
+def build_features(
+    games: pd.DataFrame,
+    advanced: pd.DataFrame | None = None,
+    talent: pd.DataFrame | None = None,
+    returning: pd.DataFrame | None = None,
+    teams: pd.DataFrame | None = None,
+    **ridge_kwargs,
+) -> pd.DataFrame:
+    """Feature table: one row per FBS-vs-FBS team-game with target ``points``.
+
+    Pass the CFBD tables to add the v2 families (efficiency, pace, unit matchups, priors).
+    """
     all_tg = team_games(games)
     tg = _fbs_rows(all_tg)
 
@@ -296,7 +399,15 @@ def build_features(games: pd.DataFrame, **ridge_kwargs) -> pd.DataFrame:
     tg["indoor"] = tg["indoor"].fillna(False).astype(int)
     tg["conference_game"] = tg["conference_game"].astype(int)
     tg["neutral_site"] = tg["neutral_site"].astype(int)
-    return tg.drop(columns=["prev_start", "resid"]).reset_index(drop=True)
+    tg = tg.drop(columns=["prev_start", "resid"])
+
+    if advanced is not None and teams is not None:
+        with_stats = attach_advanced(all_tg, advanced, teams)
+        with_stats.loc[~with_stats["completed"], list(ADJUSTED_STATS)] = np.nan
+        tg = add_efficiency_features(tg, adjusted_stats(with_stats))
+    if talent is not None and returning is not None and teams is not None:
+        tg = add_priors(tg, talent, returning, teams)
+    return tg.reset_index(drop=True)
 
 
 FEATURE_SETS: dict[str, list[str]] = {
@@ -316,11 +427,25 @@ FEATURE_SETS: dict[str, list[str]] = {
     ],
 }  # fmt: skip
 
+FEATURE_SETS_V2: dict[str, list[str]] = {
+    "efficiency": [
+        *[f"{s}_{side}" for s in ADJUSTED_STATS for side in ("off", "def")],
+        *[f"opp_{s}_{side}" for s in ADJUSTED_STATS for side in ("off", "def")],
+        *[f"exp_{s}" for s in ADJUSTED_STATS],
+    ],
+    "pace_x_efficiency": ["exp_pace_x_ppa", "game_pace", "pass_vs_rush_edge"],
+    "priors": [
+        "talent", "opp_talent", "talent_diff", "ret_ppa", "opp_ret_ppa", "ret_pass_ppa",
+        "ret_rush_ppa", "ret_usage",
+    ],
+}  # fmt: skip
 
-def cumulative_sets() -> dict[str, list[str]]:
-    """raw_form, +ratings, +elo, +matchup, +context: each adds one family."""
+
+def cumulative_sets(include_v2: bool = True) -> dict[str, list[str]]:
+    """raw_form, +ratings, ... +priors: each adds one family (v1 then, optionally, v2)."""
+    families = {**FEATURE_SETS, **FEATURE_SETS_V2} if include_v2 else FEATURE_SETS
     out, cols = {}, []
-    for name, feats in FEATURE_SETS.items():
+    for name, feats in families.items():
         cols = cols + feats
         out[("+" if out else "") + name] = list(cols)
     return out

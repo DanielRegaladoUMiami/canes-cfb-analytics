@@ -40,6 +40,35 @@ def games() -> pd.DataFrame:
 
 
 FEATURES = cumulative_sets()["+context"]
+FEATURES_V2 = cumulative_sets()["+priors"]
+
+
+def cfbd_tables(games: pd.DataFrame) -> dict:
+    """Synthetic CFBD tables keyed by school name, like the real API."""
+    rng = np.random.default_rng(1)
+    teams = pd.DataFrame({"team_id": range(N_TEAMS), "team": [f"T{i}" for i in range(N_TEAMS)]})
+    adv = [
+        {
+            "game_id": g.game_id, "team": f"T{tid}", "o_plays": rng.normal(70, 8),
+            "o_ppa": rng.normal(0.2, 0.15), "o_successRate": rng.normal(0.42, 0.06),
+            "o_explosiveness": rng.normal(1.2, 0.2), "o_pass_ppa": rng.normal(0.25, 0.2),
+            "o_rush_ppa": rng.normal(0.12, 0.15),
+        }
+        for g in games.itertuples()
+        for tid in (g.home_id, g.away_id)
+    ]  # fmt: skip
+    seasons = [(s, f"T{i}") for s in SEASONS for i in range(N_TEAMS)]
+    talent = pd.DataFrame(
+        [{"season": s, "team": t, "talent": rng.normal(700, 100)} for s, t in seasons]
+    )
+    returning = pd.DataFrame(
+        [
+            {"season": s, "team": t, "ret_ppa": rng.random(), "ret_pass_ppa": rng.random(),
+             "ret_rush_ppa": rng.random(), "ret_usage": rng.random()}
+            for s, t in seasons
+        ]
+    )  # fmt: skip
+    return {"advanced": pd.DataFrame(adv), "talent": talent, "returning": returning, "teams": teams}
 
 
 def test_hiding_the_future_does_not_change_features(games):
@@ -52,13 +81,19 @@ def test_hiding_the_future_does_not_change_features(games):
     hidden.loc[future, "completed"] = False
     hidden.loc[future, ["home_points", "away_points"]] = np.nan
 
-    full = build_features(games).set_index(["game_id", "team_id"])
-    asof = build_features(hidden).set_index(["game_id", "team_id"])
+    cfbd = cfbd_tables(games)
+    adv = cfbd["advanced"]
+    hidden_adv = adv[~adv.game_id.isin(hidden.loc[future, "game_id"])]
+    full = build_features(games, **cfbd).set_index(["game_id", "team_id"])
+    asof = build_features(hidden, **{**cfbd, "advanced": hidden_adv}).set_index(
+        ["game_id", "team_id"]
+    )
 
     keys = full[(full.season == slate[0]) & (full.week <= slate[1])].index
     keys = keys[(full.loc[keys, "start_utc"] < cutoff) | (full.loc[keys, "week"] == slate[1])]
+    assert full.loc[keys, "exp_ppa"].notna().any()
     pd.testing.assert_frame_equal(
-        full.loc[keys, FEATURES], asof.loc[keys, FEATURES], check_exact=False, rtol=1e-9
+        full.loc[keys, FEATURES_V2], asof.loc[keys, FEATURES_V2], check_exact=False, rtol=1e-9
     )
 
 

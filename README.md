@@ -27,6 +27,7 @@ canes-cfb-analytics/
 ├── src/canes_cfb/          # shared code imported by notebooks
 │   ├── markets.py          # market × period registry: the single source of truth
 │   ├── espn.py             # ESPN games + quarter scores client (cached)
+│   ├── cfbd.py             # CFBD lines, advanced stats, talent, returning (cached)
 │   ├── features.py         # as-of features: ridge ratings, Elo, matchup, context
 │   ├── validation.py       # time split + walk-forward CV
 │   └── paths.py            # data/notebook paths

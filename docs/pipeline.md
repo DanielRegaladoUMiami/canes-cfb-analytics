@@ -54,6 +54,13 @@ model scores the same as deeper trees), and boosting on the ratings residual is 
 weather) need CFBD play-level data. See `docs/research/feature_engineering.md` and
 `docs/experiments/`.
 
+**v2 results (CFBD, 2026-09-23):** opponent-adjusted efficiency (EPA, success rate,
+explosiveness, pass/rush, tempo) → 9.38; talent + returning production → **9.30**. The
+explicit pace × efficiency term adds nothing, and there are still no interactions.
+**The market's closing line is at 8.91.** Against the lines, the model isn't profitable
+yet (see `99_evaluation/01_backtest_all_markets`), but the opening line moves toward its
+picks (positive CLV, growing with edge).
+
 ## 3. Split
 
 Random 80/20 splits leak the future: the model would train on November and "predict"

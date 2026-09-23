@@ -28,7 +28,7 @@ K ≈ 20–25, with offseason regression toward the mean.
 
 **Result: adds < 0.01 MAE on top of ridge ratings.** It's redundant with them.
 
-## 3. Pace × efficiency is multiplicative (**needs CFBD**)
+## 3. Pace × efficiency is multiplicative (**built in v2**)
 
 Points = plays × points per play. Two fast, efficient offenses inflate totals by more than
 the sum of their individual effects, and additive models miss it. Models should project
@@ -40,7 +40,7 @@ both so trees can find the product.
 
 Plays per game isn't in ESPN's scoreboard. CFBD `/stats/game/advanced` has it.
 
-## 4. Unit-vs-unit matchups (**needs CFBD**)
+## 4. Unit-vs-unit matchups (**built in v2**)
 
 The real "offense vs. defense" interaction is at the unit level: pass offense vs. pass
 defense, rush offense vs. rush defense, explosiveness vs. explosiveness allowed, havoc.
@@ -57,7 +57,7 @@ and are large above 15 mph. In CFB, ~55% of games above 10 mph go under, ~58% ab
 ([Football Study Hall: wind and CFB totals](https://www.footballstudyhall.com/2018/6/25/17500384/football-betting-windy-conditions-effect),
 [Advanced Football Analytics: weather and passing](http://www.advancedfootballanalytics.com/2012/01/weather-effects-on-passing.html))
 
-## 6. Talent and returning production as priors (**needs CFBD**)
+## 6. Talent and returning production as priors (**built in v2**)
 
 Recruiting composites and returning production are "sticky" and explain variance that
 stats-only models miss, especially early in the season. Our weakest weeks are 1–2
@@ -91,5 +91,18 @@ stats-only models miss, especially early in the season. Our weakest weeks are 1�
 | LightGBM depth 2 / 15 leaves | 9.48 / 9.61 |
 | LightGBM boosting on ratings residual | **9.43** |
 
-With only final scores there are no interactions to exploit. The interactions in §3–§5
-require play-level and weather data.
+With only final scores there are no interactions to exploit.
+
+## v2 (CFBD) results
+
+| | CV MAE |
+|---|---|
+| + opponent-adjusted efficiency (§4) | 9.38 |
+| + pace × efficiency explicit term (§3) | 9.38 (no gain) |
+| + talent and returning production (§6) | **9.30** |
+| LightGBM additive vs depth 2 vs 15 leaves | 9.30 / 9.30 / 9.42 |
+| Market closing line | 8.91 |
+
+Even with play-level data, trees find no interactions beyond what an additive model
+gets. Information (efficiency, priors) is what moved the error. Weather (§5) is still
+open: CFBD's weather endpoint needs a paid tier.
