@@ -1,0 +1,13 @@
+# Team Total
+
+**Target:** team_points: points scored by one team in the period (home and away rows) (continuous)  
+**Priced against:** team over/under total  
+**Metrics:** mae, rmse, over_rate, clv, roi_vs_close
+
+| Notebook | Period | Points counted | Status |
+|---|---|---|---|
+| [`full_game.ipynb`](full_game.ipynb) | full_game | Q1 + Q2 + Q3 + Q4 + OT | not started |
+| [`1H.ipynb`](1H.ipynb) | 1H | Q1 + Q2 | not started |
+| [`2H.ipynb`](2H.ipynb) | 2H | Q3 + Q4 + OT | not started |
+
+Conventions: see [`docs/markets.md`](../../docs/markets.md).

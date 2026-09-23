@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project data (regenerable from notebooks/00_data; never committed)
+data/**/*
+!data/**/
+!data/**/.gitkeep
+!data/README.md
+
+# venv lives outside iCloud sync (.venv is a symlink to it)
+.venv.nosync/
