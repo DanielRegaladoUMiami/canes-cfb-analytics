@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import sys
 
+import numpy as np
 import pandas as pd
 
 from canes_cfb import betting, cfbd, espn
@@ -94,6 +95,12 @@ def main() -> None:
     )
     rows["pred"] = ensemble_predict(base_preds, recipe)
 
+    # Shadow model (not used for picks): average of all six tuned models. It led in round 2
+    # but missed the pre-registered adoption rule, so 2026 decides. See docs/experiments.
+    rows["pred_shadow"] = np.mean(
+        [fit_predict(SPECS[m], params[m]["params"], train, rows) for m in SPECS], axis=0
+    )
+
     # Halves and quarters (saved to the parquet; no period lines to price them yet, #4).
     with_periods = add_period_shares(add_period_targets(features))
     period_train = with_periods[with_periods.completed & ~with_periods.shortened]
@@ -113,6 +120,16 @@ def main() -> None:
             "start_utc", "spread_open", "spread_close", "total_open", "total_close",
             "exp_total"]  # fmt: skip
     g = betting.to_games(rows[keep], games).rename(columns={"team": "home", "opp": "away"})
+    shadow = betting.to_games(
+        rows[["game_id", "team_id", "pred_shadow"]], games, pred="pred_shadow"
+    )
+    g = g.merge(
+        shadow[["game_id", "pred_margin", "pred_total"]].rename(
+            columns={"pred_margin": "shadow_margin", "pred_total": "shadow_total"}
+        ),
+        on="game_id",
+        how="left",
+    )
     for p in PERIODS:
         side = rows[["game_id", "team_id", f"pred_{p.value}"]].merge(
             games[["game_id", "home_id"]], on="game_id"

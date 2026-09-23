@@ -1,0 +1,121 @@
+{
+  "table": [
+    {
+      "period": "check 2024-25",
+      "candidate": "A current (RF)",
+      "margin MAE": 12.53,
+      "total MAE": 12.82,
+      "winner %": 71.21,
+      "ATS open %": 50.13,
+      "O/U open %": 50.28
+    },
+    {
+      "period": "check 2024-25",
+      "candidate": "B average of 6",
+      "margin MAE": 12.49,
+      "total MAE": 12.78,
+      "winner %": 70.84,
+      "ATS open %": 50.89,
+      "O/U open %": 51.6
+    },
+    {
+      "period": "check 2024-25",
+      "candidate": "C dedicated margin/total",
+      "margin MAE": 12.6,
+      "total MAE": 12.91,
+      "winner %": 71.34,
+      "ATS open %": 50.0,
+      "O/U open %": 51.22
+    },
+    {
+      "period": "check 2024-25",
+      "candidate": "D = B + C",
+      "margin MAE": 12.5,
+      "total MAE": 12.82,
+      "winner %": 70.65,
+      "ATS open %": 50.19,
+      "O/U open %": 51.6
+    },
+    {
+      "period": "check 2024-25",
+      "candidate": "E RF, blowouts clipped",
+      "margin MAE": 12.54,
+      "total MAE": 12.83,
+      "winner %": 71.03,
+      "ATS open %": 49.94,
+      "O/U open %": 51.35
+    },
+    {
+      "period": "decide 2021-23",
+      "candidate": "A current (RF)",
+      "margin MAE": 12.82,
+      "total MAE": 13.03,
+      "winner %": 71.6,
+      "ATS open %": 50.89,
+      "O/U open %": 50.93
+    },
+    {
+      "period": "decide 2021-23",
+      "candidate": "B average of 6",
+      "margin MAE": 12.78,
+      "total MAE": 12.89,
+      "winner %": 71.51,
+      "ATS open %": 51.55,
+      "O/U open %": 52.23
+    },
+    {
+      "period": "decide 2021-23",
+      "candidate": "C dedicated margin/total",
+      "margin MAE": 12.87,
+      "total MAE": 13.01,
+      "winner %": 70.79,
+      "ATS open %": 50.68,
+      "O/U open %": 51.54
+    },
+    {
+      "period": "decide 2021-23",
+      "candidate": "D = B + C",
+      "margin MAE": 12.79,
+      "total MAE": 12.91,
+      "winner %": 71.0,
+      "ATS open %": 50.15,
+      "O/U open %": 51.36
+    },
+    {
+      "period": "decide 2021-23",
+      "candidate": "E RF, blowouts clipped",
+      "margin MAE": 12.85,
+      "total MAE": 13.01,
+      "winner %": 71.73,
+      "ATS open %": 50.2,
+      "O/U open %": 50.19
+    }
+  ],
+  "verdicts": {
+    "A current (RF)": {
+      "seasons better than A (of 3)": "0",
+      "margin MAE gain 95% CI": "[+0.000, +0.000]",
+      "adopt": false
+    },
+    "B average of 6": {
+      "seasons better than A (of 3)": "2",
+      "margin MAE gain 95% CI": "[-0.010, +0.108]",
+      "adopt": false
+    },
+    "E RF, blowouts clipped": {
+      "seasons better than A (of 3)": "0",
+      "margin MAE gain 95% CI": "[-0.055, -0.002]",
+      "adopt": "False"
+    },
+    "C dedicated margin/total": {
+      "seasons better than A (of 3)": "1",
+      "margin MAE gain 95% CI": "[-0.155, +0.050]",
+      "adopt": "False"
+    },
+    "D = B + C": {
+      "seasons better than A (of 3)": "2",
+      "margin MAE gain 95% CI": "[-0.030, +0.100]",
+      "adopt": false
+    }
+  }
+}
