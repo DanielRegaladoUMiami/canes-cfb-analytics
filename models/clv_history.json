@@ -1,0 +1,160 @@
+{
+  "all": [
+    {
+      "rule": "edge4 (model side, |edge| >= 4)",
+      "bets": 1053,
+      "avg CLV (pts)": 0.46,
+      "CLV > 0 %": 53.4,
+      "CLV < 0 %": 38.7,
+      "win % vs open": 53.7
+    },
+    {
+      "rule": "shootout_under",
+      "bets": 514,
+      "avg CLV (pts)": -0.08,
+      "CLV > 0 %": 46.5,
+      "CLV < 0 %": 48.2,
+      "win % vs open": 56.6
+    },
+    {
+      "rule": "all games, model side",
+      "bets": 3941,
+      "avg CLV (pts)": 0.16,
+      "CLV > 0 %": 49.1,
+      "CLV < 0 %": 42.4,
+      "win % vs open": 50.7
+    }
+  ],
+  "by_season": {
+    "2021": [
+      {
+        "rule": "edge4 (model side, |edge| >= 4)",
+        "bets": 202,
+        "avg CLV (pts)": 0.44,
+        "CLV > 0 %": 54.5,
+        "CLV < 0 %": 36.6,
+        "win % vs open": 48.5
+      },
+      {
+        "rule": "shootout_under",
+        "bets": 136,
+        "avg CLV (pts)": -0.4,
+        "CLV > 0 %": 41.2,
+        "CLV < 0 %": 52.9,
+        "win % vs open": 59.0
+      },
+      {
+        "rule": "all games, model side",
+        "bets": 770,
+        "avg CLV (pts)": 0.04,
+        "CLV > 0 %": 44.5,
+        "CLV < 0 %": 44.3,
+        "win % vs open": 48.4
+      }
+    ],
+    "2022": [
+      {
+        "rule": "edge4 (model side, |edge| >= 4)",
+        "bets": 223,
+        "avg CLV (pts)": 0.1,
+        "CLV > 0 %": 46.6,
+        "CLV < 0 %": 44.8,
+        "win % vs open": 52.3
+      },
+      {
+        "rule": "shootout_under",
+        "bets": 132,
+        "avg CLV (pts)": 0.05,
+        "CLV > 0 %": 43.9,
+        "CLV < 0 %": 50.0,
+        "win % vs open": 55.0
+      },
+      {
+        "rule": "all games, model side",
+        "bets": 774,
+        "avg CLV (pts)": -0.03,
+        "CLV > 0 %": 44.6,
+        "CLV < 0 %": 47.3,
+        "win % vs open": 53.5
+      }
+    ],
+    "2023": [
+      {
+        "rule": "edge4 (model side, |edge| >= 4)",
+        "bets": 221,
+        "avg CLV (pts)": 0.3,
+        "CLV > 0 %": 53.8,
+        "CLV < 0 %": 41.6,
+        "win % vs open": 54.4
+      },
+      {
+        "rule": "shootout_under",
+        "bets": 90,
+        "avg CLV (pts)": -0.02,
+        "CLV > 0 %": 48.9,
+        "CLV < 0 %": 48.9,
+        "win % vs open": 55.6
+      },
+      {
+        "rule": "all games, model side",
+        "bets": 792,
+        "avg CLV (pts)": 0.01,
+        "CLV > 0 %": 49.7,
+        "CLV < 0 %": 44.6,
+        "win % vs open": 50.9
+      }
+    ],
+    "2024": [
+      {
+        "rule": "edge4 (model side, |edge| >= 4)",
+        "bets": 208,
+        "avg CLV (pts)": 0.54,
+        "CLV > 0 %": 54.8,
+        "CLV < 0 %": 38.5,
+        "win % vs open": 57.3
+      },
+      {
+        "rule": "shootout_under",
+        "bets": 80,
+        "avg CLV (pts)": 0.08,
+        "CLV > 0 %": 53.8,
+        "CLV < 0 %": 42.5,
+        "win % vs open": 55.0
+      },
+      {
+        "rule": "all games, model side",
+        "bets": 797,
+        "avg CLV (pts)": 0.25,
+        "CLV > 0 %": 52.4,
+        "CLV < 0 %": 39.1,
+        "win % vs open": 50.7
+      }
+    ],
+    "2025": [
+      {
+        "rule": "edge4 (model side, |edge| >= 4)",
+        "bets": 199,
+        "avg CLV (pts)": 0.96,
+        "CLV > 0 %": 57.8,
+        "CLV < 0 %": 31.2,
+        "win % vs open": 55.8
+      },
+      {
+        "rule": "shootout_under",
+        "bets": 76,
+        "avg CLV (pts)": 0.05,
+        "CLV > 0 %": 50.0,
+        "CLV < 0 %": 42.1,
+        "win % vs open": 57.9
+      },
+      {
+        "rule": "all games, model side",
+        "bets": 808,
+        "avg CLV (pts)": 0.5,
+        "CLV > 0 %": 53.7,
+        "CLV < 0 %": 36.9,
+        "win % vs open": 49.9
+      }
+    ]
+  }
+}

@@ -436,6 +436,9 @@ def main() -> None:
         else None,
         "games": records,
         "results": past_results(season, cal, games),
+        "clv_history": json.loads((ROOT / "models" / "clv_history.json").read_text())
+        if (ROOT / "models" / "clv_history.json").exists()
+        else None,
     }
     template = (SITE / "template.html").read_text()
     html = template.replace("/*__DATA__*/null", json.dumps(payload, ensure_ascii=False))

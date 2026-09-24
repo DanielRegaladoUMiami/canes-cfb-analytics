@@ -283,7 +283,7 @@ td.win { color: var(--good); font-weight: 700; }
 .metric { font-weight: 700; font-size: 0.86rem; color: var(--ink-2); white-space: nowrap; }
 
 /* results */
-.res-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.res-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
 @media (max-width: 640px) { .res-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .res-tile { background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: 10px 12px; display: grid; gap: 2px; align-content: start; }
 .res-tile .v { font-family: var(--display); font-weight: 800; font-size: 1.45rem; line-height: 1.05; }
@@ -388,6 +388,7 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
           </div>
         </div>
         <div class="res-tiles" id="res-tiles"></div>
+        <p class="small muted" style="margin:-4px 0 14px"><strong>CLV (closing-line value)</strong>: how far the line moved toward our pick between the open (where we bet) and kickoff. If it keeps moving our way, the market is agreeing with us. That's the fastest sign an edge is real, even in weeks when the results go against us.</p>
         <div class="res-list" id="res-list"></div>
       </section>
 
@@ -413,6 +414,9 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
         <div class="section-title"><h2>Report Card</h2><span class="small muted" id="rc-sub"></span></div>
         <p class="small muted" style="margin-bottom:10px">How the model did on seasons it never saw, next to the sportsbooks. Lower error is better; higher accuracy and AUC are better.</p>
         <div class="table-wrap panel-card" style="padding:0"><table id="rc-table"></table></div>
+        <div class="section-title" style="margin-top:22px"><h2 style="font-size:1.25rem">Does the market agree with us?</h2><span class="small muted">CLV, 2021–2025</span></div>
+        <p class="small muted" style="margin-bottom:10px">For each rule: how far the total moved toward our side between open and close, and how often the bet won at the opening line.</p>
+        <div class="table-wrap panel-card" style="padding:0"><table id="rc-clv"></table></div>
         <div class="section-title" style="margin-top:22px"><h2 style="font-size:1.25rem">Where it struggles</h2><span class="small muted">Margin error, points</span></div>
         <p class="small muted" style="margin-bottom:10px">The gap is how many points worse than the sportsbooks the model is. Big gaps are where we improve next.</p>
         <div class="rc-grid">
@@ -751,6 +755,8 @@ function resTiles(x) {
   const [pw, pl] = rec("bet_result", (r) => r.bet);
   const units = picks.reduce((s, r) => s + (r.tier === "best" ? 1 : 0.5) * (r.bet_result === "win" ? 100 / 110 : r.bet_result === "loss" ? -1 : 0), 0);
   const [aw, al] = rec("ats"), [ow, ol] = rec("ou");
+  const clvs = picks.filter((r) => r.book_total != null).map((r) => (r.bet.startsWith("Under") ? -1 : 1) * (r.book_total - r.total_open));
+  const clvAvg = avg(clvs), clvPos = clvs.filter((c) => c > 0).length, clvNeg = clvs.filter((c) => c < 0).length;
   const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
   const f1 = (v) => (v == null ? "—" : v.toFixed(1));
   const tile = (v, k, vs) => `<div class="res-tile"><span class="v">${v}</span><span class="k">${k}</span>${vs ? `<span class="vs">${vs}</span>` : ""}</div>`;
@@ -759,8 +765,10 @@ function resTiles(x) {
     tile(`${f1(tm)} pts`, "average miss on total points", `Sportsbooks: ${f1(tb)} pts`),
     tile(`${f1(mm)} pts`, "average miss on the spread (final margin)", `Sportsbooks: ${f1(mb)} pts`),
     tile(`${f1(teamErr)} pts`, "average miss on each team's points", null),
-    tile(`${f1(halfErr)} · ${f1(qErr)}`, "average miss on a half's · a quarter's total points", null),
+    tile(`${f1(halfErr)} pts`, "average miss on a half's total points", null),
+    tile(`${f1(qErr)} pts`, "average miss on a quarter's total points", null),
     tile(`${pw}–${pl}`, `our practice picks (${units >= 0 ? "+" : "−"}${Math.abs(units).toFixed(1)} units)`, `Model's side vs the line: spread ${aw}–${al} · total ${ow}–${ol}`),
+    tile(clvAvg == null ? "—" : `${clvAvg >= 0 ? "+" : "−"}${Math.abs(clvAvg).toFixed(1)} pts`, "line movement on our picks (CLV)", clvs.length ? `Moved our way ${clvPos} · against ${clvNeg} · flat ${clvs.length - clvPos - clvNeg}` : null),
   ].join("");
 }
 
@@ -781,7 +789,9 @@ function resCard(r) {
     const won = (side === "home") === (mar > 0);
     return `<tr><td class="team-cell">${mono(t, abbr(g, side))}<span>${esc(side === "home" ? r.home : r.away)}</span></td><td class="mod">${P[side]}</td><td class="fin" style="${won ? "" : "color:var(--ink-3)"}">${A[side]}</td></tr>`;
   };
-  const pick = r.bet ? `<div class="mark"><span class="what">Our pick: <strong>${esc(r.bet)}</strong> (${TIER[r.tier]})</span>${badge(r.bet_result, r.bet_result === "win" ? "Won" : r.bet_result === "loss" ? "Lost" : "Push")}</div>` : "";
+  const clv = r.bet && r.book_total != null ? (r.bet.startsWith("Under") ? -1 : 1) * (r.book_total - r.total_open) : null;
+  const clvTxt = clv == null ? "" : clv === 0 ? " · line didn't move" : ` · line moved ${Math.abs(clv)} ${clv > 0 ? "our way" : "against us"} (closed ${ln(r.book_total)})`;
+  const pick = r.bet ? `<div class="mark"><span class="what">Our pick: <strong>${esc(r.bet)}</strong> (${TIER[r.tier]})${clvTxt}</span>${badge(r.bet_result, r.bet_result === "win" ? "Won" : r.bet_result === "loss" ? "Lost" : "Push")}</div>` : "";
   const periods = ["Game", "1H", "2H", "Q1", "Q2", "Q3", "Q4"].filter((p) => r.actual[p]).map((p) => {
     const m = r.pred[p], a = r.actual[p];
     return `<tr${p === "Game" ? ' class="strong"' : ""}><td>${PNAME[p]}</td><td>${m.away}–${m.home}</td><td>${a.away}–${a.home}</td><td>${Math.abs(m.home + m.away - a.home - a.away)}</td><td>${Math.abs((m.home - m.away) - (a.home - a.away))}</td></tr>`;
@@ -849,6 +859,12 @@ function reportCard() {
     const max = Math.max(...Object.values(r).map((v) => v.gap));
     document.getElementById(id).innerHTML = `<thead><tr><th>${title}</th><th>Games</th><th>Model</th><th>Books</th><th>Gap</th></tr></thead><tbody>${Object.entries(r).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.games}</td><td>${v.model.toFixed(1)}</td><td>${v.market.toFixed(1)}</td><td><span class="gap-bar" style="width:${Math.max(4, 48 * v.gap / max).toFixed(0)}px"></span>+${v.gap.toFixed(1)}</td></tr>`).join("")}</tbody>`;
   };
+  const ch = DATA.clv_history;
+  if (ch) {
+    const nm = { "edge4 (model side, |edge| >= 4)": "Model 4+ pts off the total", shootout_under: "Under in shootouts", "all games, model side": "Every game, model's side" };
+    const seasons = Object.keys(ch.by_season);
+    document.getElementById("rc-clv").innerHTML = `<thead><tr><th>Rule</th><th>Bets</th><th>Avg CLV</th><th>Moved our way</th><th>Won</th><th>Seasons with CLV > 0</th></tr></thead><tbody>${ch.all.map((r, i) => `<tr><td>${esc(nm[r.rule] || r.rule)}</td><td>${r.bets.toLocaleString("en-US")}</td><td class="${r["avg CLV (pts)"] > 0 ? "win" : ""}">${r["avg CLV (pts)"] > 0 ? "+" : ""}${r["avg CLV (pts)"].toFixed(2)} pts</td><td>${r["CLV > 0 %"].toFixed(0)}%</td><td class="${r["win % vs open"] > 52.4 ? "win" : ""}">${r["win % vs open"].toFixed(1)}%</td><td>${seasons.filter((s) => ch.by_season[s][i]["avg CLV (pts)"] > 0).length} of ${seasons.length}</td></tr>`).join("")}</tbody>`;
+  } else document.getElementById("rc-clv").closest(".panel-card").hidden = true;
   seg("rc-weeks", "week_bucket", "Part of season");
   seg("rc-spread", "spread_bucket", "Spread size");
 }
