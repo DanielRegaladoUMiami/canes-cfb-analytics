@@ -56,11 +56,14 @@ A GitHub Action runs every Wednesday (9:00 ET):
 
 1. **Grade** last week's paper picks → [`paper_trading/`](paper_trading/)
 2. **Predict** the next slate → `data/predictions/`
-3. **Log** the new paper picks (before kickoff, timestamped in git) → [`paper_trading/2026_bets.csv`](paper_trading/2026_bets.csv)
+3. **Log** the new paper picks and every game's prediction (before kickoff, timestamped in git) →
+   [`paper_trading/2026_bets.csv`](paper_trading/2026_bets.csv), [`paper_trading/2026_predictions.csv`](paper_trading/2026_predictions.csv)
 4. **Build** the weekly card website → [`site/index.html`](site/index.html), published to
    [GitHub Pages](https://danielregaladoumiami.github.io/canes-cfb-analytics/) by `.github/workflows/pages.yml`
 
-The card shows Best Bets, every game with win chances and odds, a *Your Call* tool to
+The card shows Best Bets, every game with win chances, odds and a score breakdown (game,
+halves, quarters: each team's points, total and spread), **Results** (every finished game:
+what the model said vs the final score, right/wrong, and how many points it was off), a *Your Call* tool to
 test your own hunch against the price, Betting 101, the report card, and automated
 model checks.
 

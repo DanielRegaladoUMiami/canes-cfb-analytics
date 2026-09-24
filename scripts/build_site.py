@@ -137,6 +137,122 @@ def team_meta(season: int, week: int) -> dict[int, dict]:
     return meta
 
 
+def add_probabilities(g: pd.DataFrame, cal: dict) -> pd.DataFrame:
+    """Win/cover/over chances (calibrated on out-of-sample 2021-2025), each market's side
+    and its expected value at -110. Needs pred_margin, pred_total, spread/total_open,
+    exp_total and, for the market win chance, home_ml/away_ml."""
+    g = g.copy()
+    g["spread_edge"] = betting.spread_edge(g, "spread_open")
+    g["total_edge"] = betting.total_edge(g, "total_open")
+    # Probabilities (calibrated on out-of-sample 2021-2025) and expected value at -110.
+    g["p_home_win"] = calibration.win_probability(g.pred_margin, cal)
+    if "home_ml" in g:
+        g["p_home_win_market"] = devig(g.home_ml, g.away_ml)
+    g["p_home_cover"] = calibration.probability(calibration.spread_inputs(g), cal["spread_vs_open"])
+    g["p_over"] = calibration.probability(calibration.total_inputs(g), cal["total_vs_open"])
+    g["shootout"] = g.exp_total > calibration.SHOOTOUT_EXP_TOTAL
+    # Spread: the model's side (by edge). Its historical probability is ~50% either way,
+    # because the spread edge vs the opener hasn't predicted covers (see calibration).
+    likes_home = g.spread_edge > 0
+    g["spread_side"] = np.where(likes_home, g.home, g.away)
+    g["spread_p_side"] = np.where(likes_home, g.p_home_cover, 1 - g.p_home_cover)
+    # Totals: the model's side by edge, and the side that has historically won more often
+    # given this edge and the shootout flag (the two can differ: unders win more often).
+    g["total_model_side"] = np.where(g.total_edge > 0, "over", "under")
+    g["total_side"] = np.where(g.p_over >= 0.5, "over", "under")
+    g["total_p_side"] = np.maximum(g.p_over, 1 - g.p_over)
+    for kind in ("spread", "total"):
+        g[f"{kind}_ev"] = calibration.expected_value(g[f"{kind}_p_side"])
+    return g
+
+
+def grade(pick_side: str | None, line: float, actual: float) -> str | None:
+    """'win' / 'loss' / 'push' for a pick ('over'/'under' or 'home'/'away' as +1/-1 sides)."""
+    if pick_side is None or pd.isna(line):
+        return None
+    if actual == line:
+        return "push"
+    return "win" if (actual > line) == (pick_side in ("over", "home")) else "loss"
+
+
+def past_results(season: int, cal: dict, games: pd.DataFrame) -> list[dict]:
+    """Every finished game with a saved prediction: what the model said vs what happened.
+
+    Reads paper_trading/<season>_predictions.csv (live rows and backfilled weeks)."""
+    path = ROOT / "paper_trading" / f"{season}_predictions.csv"
+    if not path.exists():
+        return []
+    h = pd.read_csv(path, parse_dates=["start_utc"])
+    cols = ["game_id", "home_id", "away_id", "completed", "shortened", "home_points",
+            "away_points", *[f"{s}_{q}" for s in ("home", "away")
+                             for q in ("q1", "q2", "q3", "q4", "ot")]]  # fmt: skip
+    h = h.merge(games[cols], on="game_id", how="left")
+    h = h[h.completed.fillna(False).astype(bool)]
+    if h.empty:
+        return []
+    h = add_probabilities(h, cal)
+    metas = {w: team_meta(season, int(w)) for w in h.week.unique()}
+
+    out = []
+    for row in h.sort_values(["week", "start_utc"]).itertuples():
+        # the practice picks exactly as the weekly card would have shown them
+        rule_a = row.total_model_side if abs(row.total_edge) >= 4 else None
+        rule_b = "under" if row.shootout and not pd.isna(row.total_open) else None
+        conflict = bool(rule_a and rule_b and rule_a != rule_b)
+        tier, bet, _ = verdict(row, conflict)
+        total, margin = row.home_points + row.away_points, row.home_points - row.away_points
+
+        actual = {"Game": {"home": int(row.home_points), "away": int(row.away_points)}}
+        if not row.shortened:
+            for side in ("home", "away"):
+                q = [int(getattr(row, f"{side}_q{i}")) for i in range(1, 5)]
+                ot = int(getattr(row, f"{side}_ot") or 0)
+                for k, v in (("1H", q[0] + q[1]), ("2H", q[2] + q[3] + ot), ("Q1", q[0]),
+                             ("Q2", q[1]), ("Q3", q[2]), ("Q4", q[3])):  # fmt: skip
+                    actual.setdefault(k, {})[side] = v
+        book_margin = -row.spread_close if not pd.isna(row.spread_close) else None
+        meta = metas[row.week]
+
+        def fl(x, n=1):
+            return None if x is None or pd.isna(x) else round(float(x), n)
+
+        out.append(
+            {
+                "id": int(row.game_id),
+                "week": int(row.week),
+                "source": row.source,
+                "kickoff": row.start_utc.isoformat(),
+                "home": row.home,
+                "away": row.away,
+                "home_team": meta.get(int(row.home_id), {}),
+                "away_team": meta.get(int(row.away_id), {}),
+                "pred": period_points(row),
+                "actual": actual,
+                "pred_margin": fl(row.pred_margin),
+                "pred_total": fl(row.pred_total),
+                "book_margin": fl(book_margin),
+                "book_total": fl(row.total_close),
+                "spread_open": fl(row.spread_open, 2),
+                "total_open": fl(row.total_open, 2),
+                "winner_ok": None
+                if row.pred_margin == 0 or margin == 0
+                else bool(np.sign(row.pred_margin) == np.sign(margin)),
+                "book_winner_ok": None
+                if book_margin in (None, 0) or margin == 0
+                else bool(np.sign(book_margin) == np.sign(margin)),
+                "ats": grade(
+                    "home" if row.spread_edge > 0 else "away", -row.spread_open, margin
+                ),  # fmt: skip
+                "ats_side": row.home if row.spread_edge > 0 else row.away,
+                "ou": grade(row.total_model_side, row.total_open, total),
+                "tier": tier,
+                "bet": bet,
+                "bet_result": grade(row.total_side, row.total_open, total) if bet else None,
+            }
+        )
+    return out
+
+
 def check(name: str, ok: bool | None, detail: str, warn: bool = False) -> dict:
     status = "pass" if ok else ("warn" if warn or ok is None else "fail")
     return {"name": name, "status": status, "detail": detail}
@@ -155,24 +271,7 @@ def main() -> None:
     g = g.merge(games[["game_id", "home_id", "away_id"]], on="game_id", how="left")
     meta = team_meta(season, week)
 
-    # Probabilities (calibrated on out-of-sample 2021-2025) and expected value at -110.
-    g["p_home_win"] = calibration.win_probability(g.pred_margin, cal)
-    g["p_home_win_market"] = devig(g.home_ml, g.away_ml)
-    g["p_home_cover"] = calibration.probability(calibration.spread_inputs(g), cal["spread_vs_open"])
-    g["p_over"] = calibration.probability(calibration.total_inputs(g), cal["total_vs_open"])
-    g["shootout"] = g.exp_total > calibration.SHOOTOUT_EXP_TOTAL
-    # Spread: the model's side (by edge). Its historical probability is ~50% either way,
-    # because the spread edge vs the opener hasn't predicted covers (see calibration).
-    likes_home = g.spread_edge > 0
-    g["spread_side"] = np.where(likes_home, g.home, g.away)
-    g["spread_p_side"] = np.where(likes_home, g.p_home_cover, 1 - g.p_home_cover)
-    # Totals: the model's side by edge, and the side that has historically won more often
-    # given this edge and the shootout flag (the two can differ: unders win more often).
-    g["total_model_side"] = np.where(g.total_edge > 0, "over", "under")
-    g["total_side"] = np.where(g.p_over >= 0.5, "over", "under")
-    g["total_p_side"] = np.maximum(g.p_over, 1 - g.p_over)
-    for kind in ("spread", "total"):
-        g[f"{kind}_ev"] = calibration.expected_value(g[f"{kind}_p_side"])
+    g = add_probabilities(g, cal)
 
     bets_path = ROOT / "paper_trading" / f"{season}_bets.csv"
     bets = pd.read_csv(bets_path) if bets_path.exists() else pd.DataFrame(columns=["game_id"])
@@ -335,12 +434,15 @@ def main() -> None:
         if (ROOT / "models" / "scorecard.json").exists()
         else None,
         "games": records,
+        "results": past_results(season, cal, games),
     }
     template = (SITE / "template.html").read_text()
     html = template.replace("/*__DATA__*/null", json.dumps(payload, ensure_ascii=False))
     (SITE / "index.html").write_text(html)
     failed = [c["name"] for c in checks if c["status"] == "fail"]
-    print(f"site/index.html: week {week}, {len(records)} games, checks failed: {failed or 'none'}")
+    graded = payload["results"]
+    print(f"site/index.html: week {week}, {len(records)} games, {len(graded)} past games graded, "
+          f"checks failed: {failed or 'none'}")  # fmt: skip
     for c in checks:
         print(f"  [{c['status']}] {c['name']}: {c['detail']}")
 

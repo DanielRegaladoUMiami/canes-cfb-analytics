@@ -21,8 +21,9 @@ which redeploys after every weekly run.
 | Game cards | Each team's projected points and record, a win-chance bar in team colors with a tick for the sportsbooks, and the spread, total and moneyline |
 | Why | The plain-English reason for the pick or the pass |
 | Your Call | Pick any outcome and how often you think it happens; the page shows the payout, the break-even and the value for you and for the model |
-| By Quarter | Projected points for every half and quarter |
+| By Quarter | Each team's projected points, total and spread for the game, every half and quarter, as whole numbers that add up |
 | Betting 101 | Odds as "out of 100", reading the price, value and ROI, risk, and a risk calculator |
+| Results | Every finished 2026 game: model vs final score (game, halves, quarters), right or wrong on the winner, points off on the total and spread, the model's side vs the line, and the practice picks' record. Weeks 1–3 are backfilled (models refit only on earlier games), week 4 on is live |
 | Report Card | @sec-reportcard, live |
 | Model Check | Automatic checks every time the page is built |
 

@@ -44,6 +44,7 @@ uv run python scripts/grade_paper.py       # grade finished paper picks
 uv run python scripts/calibrate.py         # probabilities from out-of-sample 2021-2025
 uv run python scripts/scorecard.py         # report card for every target
 uv run python scripts/build_site.py        # weekly card website (site/index.html)
+uv run python scripts/backfill_season.py   # re-predict finished weeks with no live prediction
 ```
 
 - The 2025 test in `04_team_total/full_game` is run once. Don't re-tune or re-select

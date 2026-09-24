@@ -16,3 +16,14 @@ kickoff. A (game, rule) already logged keeps its first pick. Commit the file aft
 git timestamps prove the pick came before the result.
 
 Grading (win %, ROI, CLV vs the closing total) happens after the games; see ROADMAP.
+
+## Every game's prediction
+
+`<season>_predictions.csv` stores the model's prediction for every FBS-vs-FBS game: each
+team's points, spread and total for the game, halves and quarters, and the lines. The
+website's **Results** section compares it with the final scores.
+
+- `source = live`: saved by `scripts/predict_week.py` before kickoff (week 4 of 2026 on).
+- `source = backfill`: weeks 1–3 of 2026, made afterwards by `scripts/backfill_season.py`
+  with models refit only on games played before that week. Honest about the model, but
+  not timestamped before kickoff. A backfill never overwrites a live prediction.

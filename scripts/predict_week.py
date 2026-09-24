@@ -18,9 +18,10 @@ tracked on paper through 2026, never real money:
      notebooks/00_data/05_nonlinearity_insights.ipynb.
 Spread edges are listed for tracking only.
 
-Output: data/predictions/<season>_<type>_w<week>.parquet (full card, local) and new paper
-bets appended to paper_trading/<season>_bets.csv (committed, so each pick is timestamped
-in git before kickoff).
+Output: data/predictions/<season>_<type>_w<week>.parquet (full card, local), new paper
+bets appended to paper_trading/<season>_bets.csv and every game's prediction saved to
+paper_trading/<season>_predictions.csv (both committed, so they are timestamped in git
+before kickoff).
 """
 
 from __future__ import annotations
@@ -69,26 +70,47 @@ def refresh() -> None:
     cfbd.load_preseason_ap(seasons).to_parquet(RAW / "preseason_ap.parquet", index=False)
 
 
-def main() -> None:
-    if "--no-refresh" not in sys.argv:
-        refresh()
-    features = build_all(RAW)
-    features.to_parquet(PROCESSED / "team_games.parquet", index=False)
+HISTORY_COLS = ["season", "season_type", "week", "game_id", "start_utc", "home", "away",
+                "pred", "pred_away", "pred_margin", "pred_total",
+                *[f"pred_{k}_{p.value}" for p in PERIODS for k in ("margin", "total")],
+                "spread_open", "spread_close", "total_open", "total_close",
+                "exp_total"]  # fmt: skip
 
-    upcoming = features[~features.completed & (features.start_utc >= pd.Timestamp.now(tz="UTC"))]
-    if upcoming.empty:
-        print("No upcoming FBS-vs-FBS games.")
-        return
-    slate = upcoming.sort_values("slate_start").iloc[0][["season", "season_type", "week"]]
-    rows = upcoming[
-        (upcoming.season == slate.season)
-        & (upcoming.season_type == slate.season_type)
-        & (upcoming.week == slate.week)
-    ].copy()
 
+def record_predictions(g: pd.DataFrame, source: str) -> None:
+    """Upsert this slate's per-game predictions into paper_trading/<season>_predictions.csv.
+
+    source = "live" (made before kickoff, timestamped by the git commit) or "backfill"
+    (made later, but with a model that only saw games played before that week)."""
+    path = ROOT / "paper_trading" / f"{SEASON}_predictions.csv"
+    new = g[HISTORY_COLS].copy()
+    new["source"] = source
+    new["predicted_utc"] = pd.Timestamp.now(tz="UTC").floor("s").isoformat()
+    if path.exists():
+        old = pd.read_csv(path)
+        keep_old = ~old.game_id.isin(new.game_id)
+        if source == "backfill":  # never overwrite a live prediction with a backfill
+            live = old[old.source == "live"].game_id
+            new = new[~new.game_id.isin(live)]
+            keep_old = ~old.game_id.isin(new.game_id)
+        new = pd.concat([old[keep_old], new], ignore_index=True)
+    num = new.select_dtypes("number").columns.difference(
+        ["season", "season_type", "week", "game_id"]
+    )
+    new[num] = new[num].round(2)
+    new.sort_values(["season_type", "week", "start_utc"]).to_csv(path, index=False)
+
+
+def predict_slate(features: pd.DataFrame, rows: pd.DataFrame) -> pd.DataFrame:
+    """One row per game with the model's team points, spread, total, halves and quarters.
+
+    Every model is refit on completed games that kicked off before the slate's first game,
+    so the same function makes this week's card and honest backfills of past weeks."""
+    cutoff = rows.start_utc.min()
     recipe = json.loads((ROOT / "models" / "team_points_final.json").read_text())
     params = json.loads((ROOT / "models" / "team_points_params.json").read_text())
-    train = features[features.completed & ~features.shortened & (features.season >= 2016)]
+    before = features.completed & ~features.shortened & (features.start_utc < cutoff)
+    train = features[before & (features.season >= 2016)]
     base_preds = pd.DataFrame(
         {m: fit_predict(SPECS[m], params[m]["params"], train, rows) for m in models_needed(recipe)},
         index=rows.index,
@@ -103,7 +125,9 @@ def main() -> None:
 
     # Halves and quarters (saved to the parquet; no period lines to price them yet, #4).
     with_periods = add_period_shares(add_period_targets(features))
-    period_train = with_periods[with_periods.completed & ~with_periods.shortened]
+    period_train = with_periods[
+        with_periods.completed & ~with_periods.shortened & (with_periods.start_utc < cutoff)
+    ]
     period_train = period_train[period_train.season >= 2016]
     period_rows = (
         with_periods.set_index(["game_id", "team_id"])
@@ -145,6 +169,27 @@ def main() -> None:
     g["total_pick"] = (
         (g.total_edge > 0).map({True: "over", False: "under"}).where(g.total_edge.notna())
     )
+    return g
+
+
+def main() -> None:
+    if "--no-refresh" not in sys.argv:
+        refresh()
+    features = build_all(RAW)
+    features.to_parquet(PROCESSED / "team_games.parquet", index=False)
+
+    upcoming = features[~features.completed & (features.start_utc >= pd.Timestamp.now(tz="UTC"))]
+    if upcoming.empty:
+        print("No upcoming FBS-vs-FBS games.")
+        return
+    slate = upcoming.sort_values("slate_start").iloc[0][["season", "season_type", "week"]]
+    rows = upcoming[
+        (upcoming.season == slate.season)
+        & (upcoming.season_type == slate.season_type)
+        & (upcoming.week == slate.week)
+    ].copy()
+
+    g = predict_slate(features, rows)
     rule_a = g.assign(rule="edge4")[g.total_edge.abs() >= PAPER_TOTAL_EDGE]
     rule_b = g.assign(rule="shootout_under", total_pick="under")[
         (g.exp_total > SHOOTOUT_EXP_TOTAL) & g.total_open.notna()
@@ -172,6 +217,7 @@ def main() -> None:
         print(bets[cols].round(1).to_string(index=False))
     if "--no-log" not in sys.argv:
         log_paper_bets(bets)
+        record_predictions(g, "live")
     print(f"\nsaved {PREDICTIONS / name}")
 
 

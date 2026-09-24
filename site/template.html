@@ -273,6 +273,37 @@ details.check-all > summary { cursor: pointer; font-family: var(--display); font
 .rc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 .gap-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-right: 6px; }
 td.win { color: var(--good); font-weight: 700; }
+/* results */
+.res-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+@media (max-width: 640px) { .res-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.res-tile { background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: 10px 12px; display: grid; gap: 2px; align-content: start; }
+.res-tile .v { font-family: var(--display); font-weight: 800; font-size: 1.45rem; line-height: 1.05; }
+.res-tile .k { font-size: 0.82rem; color: var(--ink-2); }
+.res-tile .vs { font-size: 0.8rem; color: var(--ink-3); font-weight: 600; }
+.res-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 10px; }
+.res { background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; display: grid; align-content: start; min-width: 0; }
+.res > * { min-width: 0; }
+.badges { display: flex; gap: 4px; flex: none; }
+.res-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 12px; background: var(--card-2); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+.res-score { width: 100%; font-size: 0.95rem; }
+.res-score th, .res-score td { padding: 6px 12px; }
+.res-score td.team-cell { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: normal; }
+.res-score .mono { width: 28px; height: 28px; font-size: 0.66rem; flex: none; }
+.res-score td.fin { font-family: var(--display); font-weight: 800; font-size: 1.25rem; }
+.res-score td.mod { color: var(--ink-2); font-weight: 600; }
+.marks { display: grid; gap: 6px; padding: 10px 12px; }
+.mark { display: flex; justify-content: space-between; gap: 8px; font-size: 0.86rem; align-items: baseline; }
+.mark .what { color: var(--ink-2); min-width: 0; }
+.badge { font-size: 0.74rem; font-weight: 800; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+.badge.ok { background: var(--good-soft); color: var(--good); }
+.badge.no { background: var(--accent-soft); color: var(--bad); }
+.badge.push { background: var(--card-2); color: var(--ink-2); border: 1px solid var(--rule); }
+.res details { border-top: 1px solid var(--rule); }
+.res details > summary { cursor: pointer; padding: 8px 12px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); background: var(--card-2); }
+.res details table { font-size: 0.84rem; }
+.res details th, .res details td { padding: 5px 8px; }
+.src { font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 3px; background: var(--card); color: var(--ink-3); border: 1px solid var(--rule); }
+.src.live { color: var(--good); border-color: var(--good); }
 footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 1px solid var(--rule); padding-top: 12px; }
 @media (prefers-reduced-motion: reduce) { .g-toggle .chev { transition: none; } }
 </style>
@@ -283,6 +314,7 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
     <nav class="nav" aria-label="Sections">
       <a href="#best-bets">Best Bets</a>
       <a href="#games">Games</a>
+      <a href="#results">Results</a>
       <a href="#betting-101">Betting 101</a>
       <a href="#report-card">Report Card</a>
       <a href="#model-check">Model Check</a>
@@ -322,6 +354,22 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
           <span class="count" id="count" aria-live="polite"></span>
         </div>
         <div id="games-list"></div>
+      </section>
+
+      <section id="results">
+        <div class="section-title"><h2>Results</h2><span class="small muted" id="res-sub"></span></div>
+        <p class="small muted" style="margin-bottom:10px" id="res-note"></p>
+        <div class="filters">
+          <div class="chips" id="res-weeks" role="group" aria-label="Pick a week"></div>
+          <div class="chips" id="res-show" role="group" aria-label="Show games">
+            <button type="button" class="chip" data-r="all" aria-pressed="true">All games</button>
+            <button type="button" class="chip" data-r="right" aria-pressed="false">Right winner</button>
+            <button type="button" class="chip" data-r="wrong" aria-pressed="false">Wrong winner</button>
+            <button type="button" class="chip" data-r="picks" aria-pressed="false">Our picks</button>
+          </div>
+        </div>
+        <div class="res-tiles" id="res-tiles"></div>
+        <div class="res-list" id="res-list"></div>
       </section>
 
       <section id="betting-101">
@@ -477,7 +525,7 @@ function bets() {
 }
 
 let filter = "all";
-function syncChips() { document.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === filter))); }
+function syncChips() { document.querySelectorAll(".chip[data-f]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === filter))); }
 
 function card(g) {
   const pH = g.p_home_win, pA = 1 - pH, homeFav = pH >= 0.5;
@@ -565,7 +613,7 @@ function detail(g, panel) {
   const pname = { Game: "Full game", "1H": "1st half", "2H": "2nd half", Q1: "1st quarter", Q2: "2nd quarter", Q3: "3rd quarter", Q4: "4th quarter" };
   const quarters = ["Game", "1H", "2H", "Q1", "Q2", "Q3", "Q4"].map((p) => {
     const a = g.periods[p].away, h = g.periods[p].home;
-    return `<tr${p === "Game" ? ' class="strong"' : ""}><td>${pname[p]}</td><td>${a}</td><td>${h}</td><td>${a + h}</td></tr>`;
+    return `<tr${p === "Game" ? ' class="strong"' : ""}><td>${pname[p]}</td><td>${a}</td><td>${h}</td><td>${a + h}</td><td>${byTxt(g, h - a)}</td></tr>`;
   }).join("");
   const opts = options(g);
   const id = g.id;
@@ -592,8 +640,8 @@ function detail(g, panel) {
       <p class="answer" id="ca-${id}"></p>
     </div>
     <div class="panel" role="tabpanel" id="p-${id}-q" aria-labelledby="tab-${id}-q" hidden>
-      <div class="table-wrap"><table><thead><tr><th>Period</th><th>${esc(abbr(g, "away"))}</th><th>${esc(abbr(g, "home"))}</th><th>Total</th></tr></thead><tbody>${quarters}</tbody></table></div>
-      <p class="small muted">Projected points, rounded so the quarters add up to the halves and the halves to the full game (2nd half includes overtime). No sportsbook lines for these yet, so no picks here.</p>
+      <div class="table-wrap"><table><thead><tr><th>Period</th><th>${esc(abbr(g, "away"))}</th><th>${esc(abbr(g, "home"))}</th><th>Total</th><th>Spread</th></tr></thead><tbody>${quarters}</tbody></table></div>
+      <p class="small muted">Projected points, rounded so the quarters add up to the halves and the halves to the full game (2nd half includes overtime). Spread = who's ahead in that period and by how much. No sportsbook lines for halves and quarters yet, so no picks here.</p>
     </div>`;
   const tabs = panel.querySelectorAll('[role="tab"]');
   tabs.forEach((t) => t.addEventListener("click", () => {
@@ -637,6 +685,98 @@ function calc() {
     box(kelly > 0 ? `${(100 * kelly / 4).toFixed(1)}%` : "0%", "of bankroll per bet (¼ Kelly)"),
     box("52.4 of 100", "break-even at −110"),
   ].join("");
+}
+
+const byTxt = (g, m) => (m === 0 ? "Even" : `${abbr(g, m > 0 ? "home" : "away")} by ${Math.abs(m)}`);
+const PNAME = { Game: "Full game", "1H": "1st half", "2H": "2nd half", Q1: "1st quarter", Q2: "2nd quarter", Q3: "3rd quarter", Q4: "4th quarter" };
+
+let resWeek = null, resShow = "all";
+function results() {
+  const R = DATA.results || [];
+  const sec = document.getElementById("results");
+  if (!R.length) { sec.hidden = true; return; }
+  const weeks = [...new Set(R.map((r) => r.week))].sort((a, b) => a - b);
+  if (resWeek === null) resWeek = weeks[weeks.length - 1];
+  const backfilled = [...new Set(R.filter((r) => r.source === "backfill").map((r) => r.week))];
+  document.getElementById("res-sub").textContent = `${DATA.season} season · ${R.length} finished games`;
+  document.getElementById("res-note").textContent = `What the model said vs what happened, game by game. ` +
+    (backfilled.length ? `Weeks ${backfilled.join(", ")} were predicted after the fact by a model that only saw games played before each week (marked "Backfill"). ` : "") +
+    `From week ${DATA.week} on, every prediction is saved before kickoff (marked "Live").`;
+  document.getElementById("res-weeks").innerHTML = ["all", ...weeks].map((w) => `<button type="button" class="chip" data-w="${w}" aria-pressed="${String(w === resWeek)}">${w === "all" ? "All weeks" : `Week ${w}`}</button>`).join("");
+  document.querySelectorAll("#res-weeks .chip").forEach((b) => b.addEventListener("click", () => { resWeek = b.dataset.w === "all" ? "all" : Number(b.dataset.w); results(); }));
+
+  const inWeek = R.filter((r) => resWeek === "all" || r.week === resWeek);
+  resTiles(inWeek);
+  let shown = inWeek;
+  if (resShow === "right") shown = shown.filter((r) => r.winner_ok === true);
+  if (resShow === "wrong") shown = shown.filter((r) => r.winner_ok === false);
+  if (resShow === "picks") shown = shown.filter((r) => r.bet);
+  const el = document.getElementById("res-list");
+  el.innerHTML = shown.length ? shown.map(resCard).join("") : `<p class="muted">No games match this filter.</p>`;
+}
+
+function resTiles(x) {
+  const fin = (r) => r.actual.Game, tot = (r) => fin(r).home + fin(r).away, mar = (r) => fin(r).home - fin(r).away;
+  const avg = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : null);
+  const right = (k) => { const v = x.filter((r) => r[k] !== null); return [v.filter((r) => r[k]).length, v.length]; };
+  const [wr, wn] = right("winner_ok"), [br, bn] = right("book_winner_ok");
+  const tm = avg(x.map((r) => Math.abs(r.pred_total - tot(r)))), tb = avg(x.filter((r) => r.book_total != null).map((r) => Math.abs(r.book_total - tot(r))));
+  const mm = avg(x.map((r) => Math.abs(r.pred_margin - mar(r)))), mb = avg(x.filter((r) => r.book_margin != null).map((r) => Math.abs(r.book_margin - mar(r))));
+  const teamErr = avg(x.flatMap((r) => ["home", "away"].map((s) => Math.abs(r.pred.Game[s] - fin(r)[s]))));
+  const halfErr = avg(x.filter((r) => r.actual["1H"]).flatMap((r) => ["1H", "2H"].map((p) => Math.abs(r.pred[p].home + r.pred[p].away - r.actual[p].home - r.actual[p].away))));
+  const qErr = avg(x.filter((r) => r.actual.Q1).flatMap((r) => ["Q1", "Q2", "Q3", "Q4"].map((p) => Math.abs(r.pred[p].home + r.pred[p].away - r.actual[p].home - r.actual[p].away))));
+  const rec = (k, filt = () => true) => { const v = x.filter(filt); return [v.filter((r) => r[k] === "win").length, v.filter((r) => r[k] === "loss").length, v.filter((r) => r[k] === "push").length]; };
+  const picks = x.filter((r) => r.bet);
+  const [pw, pl] = rec("bet_result", (r) => r.bet);
+  const units = picks.reduce((s, r) => s + (r.tier === "best" ? 1 : 0.5) * (r.bet_result === "win" ? 100 / 110 : r.bet_result === "loss" ? -1 : 0), 0);
+  const [aw, al] = rec("ats"), [ow, ol] = rec("ou");
+  const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
+  const f1 = (v) => (v == null ? "—" : v.toFixed(1));
+  const tile = (v, k, vs) => `<div class="res-tile"><span class="v">${v}</span><span class="k">${k}</span>${vs ? `<span class="vs">${vs}</span>` : ""}</div>`;
+  document.getElementById("res-tiles").innerHTML = [
+    tile(`${wr} of ${wn}`, `right winner (${pct(wr, wn)}%)`, `Sportsbook favorite: ${br} of ${bn} (${pct(br, bn)}%)`),
+    tile(`${f1(tm)} pts`, "average miss on total points", `Sportsbooks: ${f1(tb)} pts`),
+    tile(`${f1(mm)} pts`, "average miss on the spread (final margin)", `Sportsbooks: ${f1(mb)} pts`),
+    tile(`${f1(teamErr)} pts`, "average miss on each team's points", null),
+    tile(`${f1(halfErr)} · ${f1(qErr)}`, "average miss on a half's · a quarter's total points", null),
+    tile(`${pw}–${pl}`, `our practice picks (${units >= 0 ? "+" : "−"}${Math.abs(units).toFixed(1)} units)`, `Model's side vs the line: spread ${aw}–${al} · total ${ow}–${ol}`),
+  ].join("");
+}
+
+function badge(res, txt) {
+  if (res == null) return `<span class="badge push">—</span>`;
+  const cls = res === true || res === "win" ? "ok" : res === "push" ? "push" : "no";
+  const icon = cls === "ok" ? "✓" : cls === "no" ? "✗" : "=";
+  return `<span class="badge ${cls}">${icon} ${txt ?? (cls === "ok" ? "Right" : cls === "no" ? "Wrong" : "Push")}</span>`;
+}
+
+function resCard(r) {
+  const g = r, A = r.actual.Game, P = r.pred.Game;
+  const tot = A.home + A.away, mar = A.home - A.away;
+  const winnerName = mar > 0 ? r.home : r.away;
+  const modelFav = r.pred_margin > 0 ? r.home : r.away;
+  const row = (side) => {
+    const t = side === "home" ? r.home_team : r.away_team;
+    const won = (side === "home") === (mar > 0);
+    return `<tr><td class="team-cell">${mono(t, abbr(g, side))}<span>${esc(side === "home" ? r.home : r.away)}</span></td><td class="mod">${P[side]}</td><td class="fin" style="${won ? "" : "color:var(--ink-3)"}">${A[side]}</td></tr>`;
+  };
+  const pick = r.bet ? `<div class="mark"><span class="what">Our pick: <strong>${esc(r.bet)}</strong> (${TIER[r.tier]})</span>${badge(r.bet_result, r.bet_result === "win" ? "Won" : r.bet_result === "loss" ? "Lost" : "Push")}</div>` : "";
+  const periods = ["Game", "1H", "2H", "Q1", "Q2", "Q3", "Q4"].filter((p) => r.actual[p]).map((p) => {
+    const m = r.pred[p], a = r.actual[p];
+    return `<tr${p === "Game" ? ' class="strong"' : ""}><td>${PNAME[p]}</td><td>${m.away}–${m.home}</td><td>${a.away}–${a.home}</td><td>${Math.abs(m.home + m.away - a.home - a.away)}</td><td>${Math.abs((m.home - m.away) - (a.home - a.away))}</td></tr>`;
+  }).join("");
+  return `<article class="res">
+    <div class="res-head"><span>Week ${r.week} · ${kick(r.kickoff, { weekday: "short", month: "short", day: "numeric" })}</span><span class="src ${r.source === "live" ? "live" : ""}">${r.source === "live" ? "Live" : "Backfill"}</span></div>
+    <table class="res-score"><thead><tr><th>Team</th><th>Model</th><th>Final</th></tr></thead><tbody>${row("away")}${row("home")}</tbody></table>
+    <div class="marks">
+      <div class="mark"><span class="what">Winner: model had <strong>${esc(modelFav)}</strong>${mar !== 0 ? `, ${esc(winnerName)} won` : ", tie"}</span>${badge(r.winner_ok)}</div>
+      <div class="mark"><span class="what">Total: model <strong>${P.home + P.away}</strong>, final <strong>${tot}</strong></span><span class="badge push">off by ${Math.abs(P.home + P.away - tot)}</span></div>
+      <div class="mark"><span class="what">Spread: model <strong>${byTxt(g, P.home - P.away)}</strong>, final <strong>${byTxt(g, mar)}</strong></span><span class="badge push">off by ${Math.abs(P.home - P.away - mar)}</span></div>
+      ${r.total_open != null ? `<div class="mark"><span class="what">vs the line: total ${ln(r.total_open)}, spread ${r.spread_open <= 0 ? spreadTxt(abbr(g, "home"), r.spread_open) : spreadTxt(abbr(g, "away"), -r.spread_open)}</span><span class="badges">${badge(r.ou, "O/U")}${badge(r.ats, "ATS")}</span></div>` : ""}
+      ${pick}
+    </div>
+    <details><summary>By half and quarter</summary><p class="small muted" style="padding:8px 12px 0">± = how many points the model was off.</p><div class="table-wrap"><table><thead><tr><th>${esc(abbr(g, "away"))}–${esc(abbr(g, "home"))}</th><th>Model</th><th>Final</th><th>Total ±</th><th>Spread ±</th></tr></thead><tbody>${periods}</tbody></table></div></details>
+  </article>`;
 }
 
 function checks() {
@@ -692,9 +832,10 @@ function reportCard() {
   seg("rc-spread", "spread_bucket", "Spread size");
 }
 
-head(); strip(); bets(); list(); calc(); checks(); charts(); reportCard();
+head(); strip(); bets(); list(); results(); calc(); checks(); charts(); reportCard();
 document.getElementById("footer").textContent = `Canes CFB Analytics · independent model, not affiliated with any network or sportsbook · win chances tested on ${DATA.calibration.games.toLocaleString("en-US")} games (${DATA.calibration.seasons}) · updated ${DATA.built_utc}`;
 document.getElementById("q").addEventListener("input", list);
-document.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { filter = b.dataset.f; syncChips(); list(); }));
+document.querySelectorAll(".chip[data-f]").forEach((b) => b.addEventListener("click", () => { filter = b.dataset.f; syncChips(); list(); }));
+document.querySelectorAll("#res-show .chip").forEach((b) => b.addEventListener("click", () => { resShow = b.dataset.r; document.querySelectorAll("#res-show .chip").forEach((c) => c.setAttribute("aria-pressed", String(c === b))); results(); }));
 ["calc-p", "calc-n"].forEach((id) => document.getElementById(id).addEventListener("input", calc));
 </script>

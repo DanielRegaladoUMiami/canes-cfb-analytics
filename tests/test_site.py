@@ -35,3 +35,14 @@ def test_period_points_are_whole_and_consistent():
         assert P["Q1"][s] + P["Q2"][s] == P["1H"][s]
         assert P["Q3"][s] + P["Q4"][s] == P["2H"][s]
         assert all(isinstance(P[p][s], int) for p in P)
+
+
+def test_grade_totals_and_spreads():
+    g = build_site.grade
+    assert g("under", 50.5, 48) == "win"
+    assert g("over", 50.5, 48) == "loss"
+    assert g("over", 48, 48) == "push"
+    # spread: line is the home margin needed (home -7 -> 7); home wins by 10 covers
+    assert g("home", 7, 10) == "win"
+    assert g("away", 7, 10) == "loss"
+    assert g(None, 7, 10) is None
