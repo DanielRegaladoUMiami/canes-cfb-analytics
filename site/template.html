@@ -81,6 +81,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+tr.strong td { font-weight: 700; }
 body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; font-variant-numeric: tabular-nums; }
 h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
 p { margin: 0; }
@@ -486,9 +487,9 @@ function card(g) {
   const row = (side) => {
     const t = side === "home" ? g.home_team : g.away_team;
     const name = side === "home" ? g.home : g.away;
-    const pts = side === "home" ? g.pred_home : g.pred_away;
+    const pts = g.periods.Game[side];
     const wins = (side === "home") === homeFav;
-    return `<div class="team">${mono(t, abbr(g, side))}<span class="tname">${rankTxt(t)}${esc(name)}${t.record ? `<span class="rec">(${esc(t.record)})</span>` : ""}</span><span class="proj ${wins ? "" : "lose"}">${Math.round(pts)}</span></div>`;
+    return `<div class="team">${mono(t, abbr(g, side))}<span class="tname">${rankTxt(t)}${esc(name)}${t.record ? `<span class="rec">(${esc(t.record)})</span>` : ""}</span><span class="proj ${wins ? "" : "lose"}">${pts}</span></div>`;
   };
   const verdict = g.tier === "pass" ? `<span class="tag pass">Pass</span>` : `<span class="tag ${g.tier}">${TIER[g.tier]}</span><span class="pickname">${esc(g.bet)}</span>`;
   return `
@@ -561,9 +562,10 @@ function detail(g, panel) {
   const notes = g.rules.map((r) => `<span class="note">Practice log: rule ${r.rule === "edge4" ? "A" : "B"} (${r.pick})</span>`);
   if (conflict(g)) notes.push(`<span class="note plain">Rules disagree → pass</span>`);
   if (g.shootout) notes.push(`<span class="note plain">Shootout watch</span>`);
-  const quarters = ["1H", "2H", "Q1", "Q2", "Q3", "Q4"].map((p) => {
-    const t = g.periods[p].total, m = g.periods[p].margin;
-    return `<tr><td>${p}</td><td>${n1((t - m) / 2)}</td><td>${n1((t + m) / 2)}</td><td>${n1(t)}</td></tr>`;
+  const pname = { Game: "Full game", "1H": "1st half", "2H": "2nd half", Q1: "1st quarter", Q2: "2nd quarter", Q3: "3rd quarter", Q4: "4th quarter" };
+  const quarters = ["Game", "1H", "2H", "Q1", "Q2", "Q3", "Q4"].map((p) => {
+    const a = g.periods[p].away, h = g.periods[p].home;
+    return `<tr${p === "Game" ? ' class="strong"' : ""}><td>${pname[p]}</td><td>${a}</td><td>${h}</td><td>${a + h}</td></tr>`;
   }).join("");
   const opts = options(g);
   const id = g.id;
@@ -577,7 +579,7 @@ function detail(g, panel) {
       <div class="why-box"><p class="label" style="color:var(--accent)">${g.tier === "pass" ? "Why we pass" : `Why ${esc(g.bet)}`}</p><p>${esc(g.why)}</p></div>
       ${notes.length ? `<div class="notes">${notes.join("")}</div>` : ""}
       <div class="facts">
-        <div class="fact"><span class="label">Projected score</span><span class="v">${esc(g.away)} ${n1(g.pred_away)} · ${esc(g.home)} ${n1(g.pred_home)}</span></div>
+        <div class="fact"><span class="label">Projected score</span><span class="v">${esc(g.away)} ${g.periods.Game.away} · ${esc(g.home)} ${g.periods.Game.home}</span></div>
         <div class="fact"><span class="label">Spread</span><span class="v">Model: ${esc(g.margin >= 0 ? g.home : g.away)} by ${n1(Math.abs(g.margin))}</span><span class="small muted">No spread picks: no proven edge vs sportsbooks.</span></div>
         <div class="fact"><span class="label">Total</span><span class="v">Model ${n1(g.total)} vs line ${ln(g.total_open)}</span><span class="small muted">Over wins ${of100(g.p_over)} of 100 · Under ${of100(1 - g.p_over)} of 100</span></div>
       </div>
@@ -591,7 +593,7 @@ function detail(g, panel) {
     </div>
     <div class="panel" role="tabpanel" id="p-${id}-q" aria-labelledby="tab-${id}-q" hidden>
       <div class="table-wrap"><table><thead><tr><th>Period</th><th>${esc(abbr(g, "away"))}</th><th>${esc(abbr(g, "home"))}</th><th>Total</th></tr></thead><tbody>${quarters}</tbody></table></div>
-      <p class="small muted">Projected points by half and quarter (2H includes overtime). No sportsbook lines for these yet.</p>
+      <p class="small muted">Projected points, rounded so the quarters add up to the halves and the halves to the full game (2nd half includes overtime). No sportsbook lines for these yet, so no picks here.</p>
     </div>`;
   const tabs = panel.querySelectorAll('[role="tab"]');
   tabs.forEach((t) => t.addEventListener("click", () => {

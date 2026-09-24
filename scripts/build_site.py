@@ -42,12 +42,13 @@ def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
     """(tier, bet label, plain-English why) for a game's total. Spreads are never picked:
     the model's spread edge hasn't beaten the opening line historically."""
     per100 = round(100 * row.total_p_side)
+    model = int(np.floor(round(row.pred_total, 1) + 0.5))
     line = f"{row.total_open:g}"
     if conflict:
         return (
             "pass",
             None,
-            f"Two signals disagree. The model projects {row.pred_total:.0f} points (over {line}), "
+            f"Two signals disagree. The model projects {model} points (over {line}), "
             f"but this looks like a shootout, and shootouts tend to go under. When that "
             f"happens, it's been a coin flip. Pass.",
         )
@@ -61,16 +62,58 @@ def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
             )
         else:
             why = (
-                f"The model projects {row.pred_total:.0f} points against a line of {line}. "
+                f"The model projects {model} points against a line of {line}. "
                 f"Bets like this have won about {per100} of every 100 times since 2021."
             )
         return tier, label, why
     return (
         "pass",
         None,
-        f"Not enough edge. To beat the sportsbook's cut you need to win 53 of every 100, "
+        f"Not enough edge. To beat the sportsbook's cut you need to win 52.4 of every 100, "
         f"and this one sits around {per100}.",
     )
+
+
+def split_whole(total: int, weights: list[float]) -> list[int]:
+    """Whole numbers proportional to `weights` that add up exactly to `total`
+    (largest-remainder rounding)."""
+    w = np.clip(np.asarray(weights, dtype=float), 0, None)
+    raw = total * (w / w.sum() if w.sum() > 0 else np.full(len(w), 1 / len(w)))
+    out = np.floor(raw).astype(int)
+    for i in np.argsort(-(raw - out))[: total - out.sum()]:
+        out[i] += 1
+    return out.tolist()
+
+
+def period_points(row) -> dict[str, dict[str, int]]:
+    """Projected points per team for the game, halves and quarters, as whole numbers that
+    add up: Q1+Q2 = 1H, Q3+Q4 = 2H, 1H+2H = full game, home+away = the rounded model total.
+
+    The period models are fitted separately, so their raw outputs don't sum exactly; they
+    are used here only for how each team's points split across the game."""
+
+    def pts(p: str, sign: int) -> float:
+        t, m = getattr(row, f"pred_total_{p}"), getattr(row, f"pred_margin_{p}")
+        return (t + sign * m) / 2
+
+    total = int(np.floor(round(row.pred_total, 1) + 0.5))
+    game = dict(zip(("home", "away"), split_whole(total, [row.pred, row.pred_away]), strict=True))
+    out: dict[str, dict[str, int]] = {}
+    for side, sign in (("home", 1), ("away", -1)):
+        h1, h2 = split_whole(game[side], [pts("1H", sign), pts("2H", sign)])
+        q1, q2 = split_whole(h1, [pts("Q1", sign), pts("Q2", sign)])
+        q3, q4 = split_whole(h2, [pts("Q3", sign), pts("Q4", sign)])
+        for p, v in (
+            ("Game", game[side]),
+            ("1H", h1),
+            ("2H", h2),
+            ("Q1", q1),
+            ("Q2", q2),
+            ("Q3", q3),
+            ("Q4", q4),
+        ):
+            out.setdefault(p, {})[side] = v
+    return out
 
 
 def team_meta(season: int, week: int) -> dict[int, dict]:
@@ -230,13 +273,7 @@ def main() -> None:
         game_rules = rules.get(row.game_id, [])
         conflict = len({x["pick"] for x in game_rules}) > 1
         tier, bet_label, why = verdict(row, conflict)
-        periods = {
-            p.value: {
-                "total": r(getattr(row, f"pred_total_{p.value}")),
-                "margin": r(getattr(row, f"pred_margin_{p.value}")),
-            }
-            for p in PERIODS
-        }
+        periods = period_points(row)
         records.append(
             {
                 "id": int(row.game_id),
