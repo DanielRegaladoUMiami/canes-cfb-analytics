@@ -13,7 +13,7 @@ period, all judged against the closing line.
 
 ## Current milestone
 2026 season in practice mode: weekly predictions, paper picks and the weekly card run from
-`scripts/predict_week.py` → `grade_paper.py` → `build_site.py` (GitHub Action, Wednesdays).
+`scripts/predict_week.py` → `grade_paper.py` → `build_site.py` (GitHub Action, Wednesdays); `pages.yml` then deploys `site/` to GitHub Pages.
 Next model work: starting-QB/injury information, weather, bowls (issues #11, #8).
 
 ## Local rules

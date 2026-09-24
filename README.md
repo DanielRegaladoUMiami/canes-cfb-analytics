@@ -4,6 +4,8 @@ Machine-learning predictions for every FBS college football game: **who wins, th
 spread, the total, each team's points, and every half and quarter**. Every prediction
 is measured against what the sportsbooks said, on seasons the model never saw.
 
+**Weekly card (live):** https://danielregaladoumiami.github.io/canes-cfb-analytics/
+
 > **Status (2026 season, week 4): practice mode.** The model predicts well, but it
 > doesn't beat the sportsbooks yet. Picks are tracked on paper, never with real money,
 > until a full season of results says otherwise.
@@ -55,7 +57,8 @@ A GitHub Action runs every Wednesday (9:00 ET):
 1. **Grade** last week's paper picks → [`paper_trading/`](paper_trading/)
 2. **Predict** the next slate → `data/predictions/`
 3. **Log** the new paper picks (before kickoff, timestamped in git) → [`paper_trading/2026_bets.csv`](paper_trading/2026_bets.csv)
-4. **Build** the weekly card website → [`site/index.html`](site/index.html)
+4. **Build** the weekly card website → [`site/index.html`](site/index.html), published to
+   [GitHub Pages](https://danielregaladoumiami.github.io/canes-cfb-analytics/) by `.github/workflows/pages.yml`
 
 The card shows Best Bets, every game with win chances and odds, a *Your Call* tool to
 test your own hunch against the price, Betting 101, the report card, and automated

@@ -8,7 +8,9 @@ cal = json.loads((ROOT / "models" / "calibration.json").read_text())
 
 Every week the predictions become a website (`site/index.html`, built by
 `scripts/build_site.py`), designed for someone who isn't a betting expert. It's in
-English, laid out like a sports app, and in practice mode.
+English, laid out like a sports app, and in practice mode. It's published at
+<https://danielregaladoumiami.github.io/canes-cfb-analytics/> by the `pages` workflow,
+which redeploys after every weekly run.
 
 ## What's on the page
 

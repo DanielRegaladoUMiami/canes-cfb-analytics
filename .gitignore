@@ -233,3 +233,5 @@ catboost_info/
 report/_book/
 report/.quarto/
 report/*_files/
+report/*.html
+report/site_libs/
