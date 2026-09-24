@@ -1,0 +1,177 @@
+{
+  "weeks": [
+    1,
+    2,
+    3
+  ],
+  "snapshot": "4 hours before kickoff",
+  "main_lines": 1836,
+  "brier_model": 0.2256,
+  "brier_kalshi_mid": 0.224,
+  "tiers": {
+    "best": {
+      "bets": 127,
+      "won": 67,
+      "win %": 52.8,
+      "avg price+fee": 0.506,
+      "avg model chance": 0.596,
+      "profit per contract": 2.78,
+      "ROI %": 4.3
+    },
+    "light": {
+      "bets": 172,
+      "won": 85,
+      "win %": 49.4,
+      "avg price+fee": 0.534,
+      "avg model chance": 0.587,
+      "profit per contract": -6.87,
+      "ROI %": -7.5
+    },
+    "pass": {
+      "bets": 1471,
+      "won": 780,
+      "win %": 53.0,
+      "avg price+fee": 0.551,
+      "avg model chance": 0.543,
+      "profit per contract": -30.32,
+      "ROI %": -3.7
+    },
+    "check_news": {
+      "bets": 66,
+      "won": 34,
+      "win %": 51.5,
+      "avg price+fee": 0.498,
+      "avg model chance": 0.642,
+      "profit per contract": 1.1,
+      "ROI %": 3.3
+    }
+  },
+  "picks (best + lean)": {
+    "bets": 299,
+    "won": 152,
+    "win %": 50.8,
+    "avg price+fee": 0.522,
+    "avg model chance": 0.591,
+    "profit per contract": -4.09,
+    "ROI %": -2.6
+  },
+  "by market": {
+    "1H margin": {
+      "bets": 22,
+      "won": 9,
+      "win %": 40.9,
+      "avg price+fee": 0.478,
+      "avg model chance": 0.541,
+      "profit per contract": -1.52,
+      "ROI %": -14.4
+    },
+    "1H total": {
+      "bets": 34,
+      "won": 15,
+      "win %": 44.1,
+      "avg price+fee": 0.516,
+      "avg model chance": 0.59,
+      "profit per contract": -2.55,
+      "ROI %": -14.5
+    },
+    "2H margin": {
+      "bets": 8,
+      "won": 3,
+      "win %": 37.5,
+      "avg price+fee": 0.551,
+      "avg model chance": 0.615,
+      "profit per contract": -1.41,
+      "ROI %": -32.0
+    },
+    "2H total": {
+      "bets": 8,
+      "won": 6,
+      "win %": 75.0,
+      "avg price+fee": 0.49,
+      "avg model chance": 0.549,
+      "profit per contract": 2.08,
+      "ROI %": 53.1
+    },
+    "Game team": {
+      "bets": 11,
+      "won": 4,
+      "win %": 36.4,
+      "avg price+fee": 0.471,
+      "avg model chance": 0.524,
+      "profit per contract": -1.18,
+      "ROI %": -22.8
+    },
+    "Q1 margin": {
+      "bets": 45,
+      "won": 30,
+      "win %": 66.7,
+      "avg price+fee": 0.567,
+      "avg model chance": 0.635,
+      "profit per contract": 4.48,
+      "ROI %": 17.6
+    },
+    "Q1 total": {
+      "bets": 32,
+      "won": 20,
+      "win %": 62.5,
+      "avg price+fee": 0.527,
+      "avg model chance": 0.602,
+      "profit per contract": 3.15,
+      "ROI %": 18.7
+    },
+    "Q2 margin": {
+      "bets": 26,
+      "won": 12,
+      "win %": 46.2,
+      "avg price+fee": 0.52,
+      "avg model chance": 0.581,
+      "profit per contract": -1.53,
+      "ROI %": -11.3
+    },
+    "Q2 total": {
+      "bets": 28,
+      "won": 14,
+      "win %": 50.0,
+      "avg price+fee": 0.524,
+      "avg model chance": 0.591,
+      "profit per contract": -0.68,
+      "ROI %": -4.6
+    },
+    "Q3 margin": {
+      "bets": 16,
+      "won": 8,
+      "win %": 50.0,
+      "avg price+fee": 0.546,
+      "avg model chance": 0.618,
+      "profit per contract": -0.74,
+      "ROI %": -8.5
+    },
+    "Q3 total": {
+      "bets": 32,
+      "won": 12,
+      "win %": 37.5,
+      "avg price+fee": 0.523,
+      "avg model chance": 0.6,
+      "profit per contract": -4.73,
+      "ROI %": -28.3
+    },
+    "Q4 margin": {
+      "bets": 24,
+      "won": 10,
+      "win %": 41.7,
+      "avg price+fee": 0.484,
+      "avg model chance": 0.554,
+      "profit per contract": -1.62,
+      "ROI %": -13.9
+    },
+    "Q4 total": {
+      "bets": 13,
+      "won": 9,
+      "win %": 69.2,
+      "avg price+fee": 0.526,
+      "avg model chance": 0.598,
+      "profit per contract": 2.16,
+      "ROI %": 31.6
+    }
+  }
+}
