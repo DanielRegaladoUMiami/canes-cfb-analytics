@@ -58,19 +58,19 @@ def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
         if row.shootout and row.total_side == "under":
             why = (
                 f"Games that look like shootouts (ratings project {row.exp_total:.0f} points) "
-                f"have gone under about {per100} of every 100 times since 2021."
+                f"have gone under {per100}% of the time since 2021."
             )
         else:
             why = (
                 f"The model projects {model} points against a line of {line}. "
-                f"Bets like this have won about {per100} of every 100 times since 2021."
+                f"Bets like this have won {per100}% of the time since 2021."
             )
         return tier, label, why
     return (
         "pass",
         None,
-        f"Not enough edge. To beat the sportsbook's cut you need to win 52.4 of every 100, "
-        f"and this one sits around {per100}.",
+        f"Not enough edge. To beat the sportsbook's cut you need to win 52.4%, "
+        f"and this one sits around {per100}%.",
     )
 
 

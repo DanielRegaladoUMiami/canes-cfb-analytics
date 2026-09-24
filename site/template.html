@@ -375,16 +375,16 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
       <section id="betting-101">
         <div class="section-title"><h2>Betting 101</h2><span class="small muted">3-minute read</span></div>
         <div class="learn">
-          <div class="idea"><h3>Odds = "out of 100"</h3><p>"Florida wins 58 of 100" means: play this game 100 times and Florida wins about 58, loses about 42. That's not a lock. 42 of 100 happens all the time. Our win chances are tested: when the model said 75, the team won 77 of 100 (2021–2025).</p></div>
-          <div class="idea"><h3>Reading the price</h3><p><strong>−110</strong>: risk $110 to win $100. <strong>+132</strong>: risk $100 to win $132. <strong>−156</strong>: risk $156 to win $100. Every price hides the win rate you need just to break even:</p><p class="formula">break-even (of 100) = 100 × risk ÷ (risk + win)</p><p>At −110 that's 52.4 of 100. Winning 51 of 100 still loses money.</p></div>
-          <div class="idea"><h3>Value and ROI</h3><p>Value is what you make on average per $100 bet. Win 56 of 100 at −110: you collect 56 × $90.91 and lose 44 × $100, which is +$6.90 per $100. That's a +6.9% ROI (return on investment).</p><p class="formula">value = wins × payout − losses × $100</p></div>
+          <div class="idea"><h3>Reading a win chance</h3><p>"Florida 58%" means: play this game 100 times and Florida wins about 58, loses about 42. That's not a lock: something with a 42% chance happens all the time. Our win chances are tested: when the model said 75%, the team won 77% of the time (2021–2025).</p></div>
+          <div class="idea"><h3>Reading the price</h3><p><strong>−110</strong>: risk $110 to win $100. <strong>+132</strong>: risk $100 to win $132. <strong>−156</strong>: risk $156 to win $100. Every price hides the win rate you need just to break even:</p><p class="formula">break-even % = 100 × risk ÷ (risk + win)</p><p>At −110 that's 52.4%. Winning 51% still loses money.</p></div>
+          <div class="idea"><h3>Value and ROI</h3><p>Value is what you make on average per $100 bet. Win 56% at −110 (56 of 100 bets): you collect 56 × $90.91 and lose 44 × $100, which is +$6.90 per $100. That's a +6.9% ROI (return on investment).</p><p class="formula">value = wins × payout − losses × $100</p></div>
           <div class="idea"><h3>Risk</h3><p>Even a real 55-of-100 bettor is down after 100 bets about 3 times in 10, just from luck. That's why pros bet small: 1 unit = 1% of your bankroll on a Best Bet, half a unit on a Lean, and they judge themselves over hundreds of bets, not one weekend.</p></div>
           <div class="idea"><h3>What the model looks at</h3><p><strong>Track record</strong> (opponent-adjusted ratings from ~2 years, plus Elo), <strong>current form</strong> (last 3 games, playing above or below its level), <strong>efficiency</strong> (plays, success rate, explosive plays), <strong>roster</strong> (talent, returning starters) and <strong>context</strong> (home field, rest, likely game script).</p></div>
           <div class="idea"><h3>How good is it?</h3><p>It's reliable at who wins. Against sportsbook lines it hasn't proven an edge yet, which is why we're in practice mode. The one signal that has held up (unders in games that look like shootouts) is what shows up in Best Bets.</p></div>
         </div>
         <div class="calc" aria-labelledby="calc-title">
           <h3 id="calc-title" style="font-size:1.2rem;font-weight:800;text-transform:uppercase">Risk calculator</h3>
-          <div class="slider"><div class="slider-row"><label for="calc-p">Your win rate (of 100)</label><span id="calc-p-out"></span></div><input id="calc-p" type="range" min="45" max="65" step="0.5" value="55"></div>
+          <div class="slider"><div class="slider-row"><label for="calc-p">Your win rate</label><span id="calc-p-out"></span></div><input id="calc-p" type="range" min="45" max="65" step="0.5" value="55"></div>
           <div class="slider"><div class="slider-row"><label for="calc-n">Number of 1-unit bets at −110</label><span id="calc-n-out"></span></div><input id="calc-n" type="range" min="10" max="1000" step="10" value="100"></div>
           <div class="nums" id="calc-out"></div>
         </div>
@@ -419,15 +419,15 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
     <aside class="rail" aria-label="Quick guide">
       <div class="panel-card">
         <h3>The 3 numbers that matter</h3>
-        <div class="keyfig"><span class="v">52.4</span><span class="small">wins out of 100 you need at −110 just to break even</span></div>
+        <div class="keyfig"><span class="v">52.4%</span><span class="small">win rate you need at −110 just to break even</span></div>
         <div class="keyfig"><span class="v">1%</span><span class="small">of your bankroll per Best Bet. Half that on a Lean.</span></div>
         <div class="keyfig"><span class="v">100s</span><span class="small">of bets before a record means anything. One weekend is noise.</span></div>
       </div>
       <div class="panel-card">
         <h3>How to read a card</h3>
         <div class="legend">
-          <div><span class="tag best">Best Bet</span><span class="small">Clear value: wins ~56 of 100.</span></div>
-          <div><span class="tag light">Lean</span><span class="small">Small value: wins ~53–54 of 100.</span></div>
+          <div><span class="tag best">Best Bet</span><span class="small">Clear value: ~56% win chance.</span></div>
+          <div><span class="tag light">Lean</span><span class="small">Small value: ~53–54% win chance.</span></div>
           <div><span class="tag pass">Pass</span><span class="small">No edge. Skipping is a pick too.</span></div>
           <p class="small muted">Big number on the right = each team's chance to win. The bar splits it in team colors; the black tick is what the sportsbooks think.</p>
         </div>
@@ -513,7 +513,7 @@ function bets() {
         <div class="bet-match">${mono(g.away_team, abbr(g, "away"))}<span>@</span>${mono(g.home_team, abbr(g, "home"))}<span>${esc(g.away)} @ ${esc(g.home)}</span></div>
         <p class="bet-pick">${esc(g.bet)}<small>−110</small></p>
         <div class="bet-stats">
-          <div><div class="v">${of100(g.total_p)} of 100</div><div class="small muted">times it wins</div></div>
+          <div><div class="v">${of100(g.total_p)}%</div><div class="small muted">win chance</div></div>
           <div><div class="v pos">${money(100 * g.total_ev)}</div><div class="small muted">per $100, on average</div></div>
         </div>
         <p class="bet-why">${esc(g.why)}</p>
@@ -629,13 +629,13 @@ function detail(g, panel) {
       <div class="facts">
         <div class="fact"><span class="label">Projected score</span><span class="v">${esc(g.away)} ${g.periods.Game.away} · ${esc(g.home)} ${g.periods.Game.home}</span></div>
         <div class="fact"><span class="label">Spread</span><span class="v">Model: ${esc(g.margin >= 0 ? g.home : g.away)} by ${n1(Math.abs(g.margin))}</span><span class="small muted">No spread picks: no proven edge vs sportsbooks.</span></div>
-        <div class="fact"><span class="label">Total</span><span class="v">Model ${n1(g.total)} vs line ${ln(g.total_open)}</span><span class="small muted">Over wins ${of100(g.p_over)} of 100 · Under ${of100(1 - g.p_over)} of 100</span></div>
+        <div class="fact"><span class="label">Total</span><span class="v">Model ${n1(g.total)} vs line ${ln(g.total_open)}</span><span class="small muted">Over ${of100(g.p_over)}% · Under ${of100(1 - g.p_over)}% win chance</span></div>
       </div>
     </div>
     <div class="panel" role="tabpanel" id="p-${id}-call" aria-labelledby="tab-${id}-call" hidden>
       <p class="small muted">Pick what you think happens and how often. We'll tell you if the price is worth it.</p>
       <div class="opts" role="radiogroup" aria-label="Your pick">${opts.map((o, i) => `<label for="c-${id}-${i}"><input type="radio" name="c-${id}" id="c-${id}-${i}" value="${i}" ${i === 0 ? "checked" : ""}><span class="opt">${esc(o.label)}<small>${price(o.ml)}</small></span></label>`).join("")}</div>
-      <div class="slider"><div class="slider-row"><label for="cp-${id}">How many times out of 100 does it happen?</label><span id="cp-${id}-out"></span></div><input id="cp-${id}" type="range" min="1" max="99" step="1"></div>
+      <div class="slider"><div class="slider-row"><label for="cp-${id}">How likely is it? (your %)</label><span id="cp-${id}-out"></span></div><input id="cp-${id}" type="range" min="1" max="99" step="1"></div>
       <div class="nums" id="cn-${id}"></div>
       <p class="answer" id="ca-${id}"></p>
     </div>
@@ -652,18 +652,18 @@ function detail(g, panel) {
     const o = opts[Number(panel.querySelector(`input[name="c-${id}"]:checked`).value)];
     if (reset) slider.value = of100(o.p);
     const mine = Number(slider.value);
-    document.getElementById(`cp-${id}-out`).textContent = `${mine} of 100`;
+    document.getElementById(`cp-${id}-out`).textContent = `${mine}%`;
     const need = of100(breakEven(o.ml));
     const evMine = ev100(mine / 100, o.ml), evModel = ev100(o.p, o.ml);
     document.getElementById(`cn-${id}`).innerHTML = `
       <div class="num-box"><span class="v">$${payout(o.ml).toFixed(0)}</span><span class="k">profit per $100 if it hits (${price(o.ml)})</span></div>
-      <div class="num-box"><span class="v">${need} of 100</span><span class="k">needed just to break even</span></div>
-      <div class="num-box"><span class="v ${evMine >= 0 ? "pos" : "neg"}">${money(evMine)}</span><span class="k">per $100 if you're right (${mine} of 100)</span></div>
-      <div class="num-box"><span class="v ${evModel >= 0 ? "pos" : "neg"}">${money(evModel)}</span><span class="k">per $100 by the model (${of100(o.p)} of 100)</span></div>`;
+      <div class="num-box"><span class="v">${need}%</span><span class="k">needed just to break even</span></div>
+      <div class="num-box"><span class="v ${evMine >= 0 ? "pos" : "neg"}">${money(evMine)}</span><span class="k">per $100 if you're right (${mine}%)</span></div>
+      <div class="num-box"><span class="v ${evModel >= 0 ? "pos" : "neg"}">${money(evModel)}</span><span class="k">per $100 by the model (${of100(o.p)}%)</span></div>`;
     const modelN = of100(o.p);
     document.getElementById(`ca-${id}`).innerHTML = mine > need
-      ? `<strong>Worth it on your number.</strong> You say ${mine} of 100 and you only need more than ${need}. ${modelN > need ? "The model agrees there's value." : `The model has it at ${modelN}, so it comes down to who's right.`}`
-      : `<strong>Not worth it on your number.</strong> You need more than ${need} of 100 and you're at ${mine}.`;
+      ? `<strong>Worth it on your number.</strong> You say ${mine}% and you only need more than ${need}%. ${modelN > need ? "The model agrees there's value." : `The model has it at ${modelN}%, so it comes down to who's right.`}`
+      : `<strong>Not worth it on your number.</strong> You need more than ${need}% and you're at ${mine}%.`;
   };
   panel.querySelectorAll(`input[name="c-${id}"]`).forEach((r) => r.addEventListener("change", () => update(true)));
   slider.addEventListener("input", () => update(false));
@@ -672,7 +672,7 @@ function detail(g, panel) {
 
 function calc() {
   const p = Number(document.getElementById("calc-p").value) / 100, n = Number(document.getElementById("calc-n").value);
-  document.getElementById("calc-p-out").textContent = `${(100 * p).toFixed(1)} of 100`;
+  document.getElementById("calc-p-out").textContent = `${(100 * p).toFixed(1)}%`;
   document.getElementById("calc-n-out").textContent = `${n} bets`;
   const b = 100 / 110, ev = p * b - (1 - p), sd = Math.sqrt(n) * (1 + b) * Math.sqrt(p * (1 - p));
   const pLoss = phi(-n * ev / sd), kelly = (b * p - (1 - p)) / b, sg = (x) => (x >= 0 ? "+" : "−");
@@ -680,10 +680,10 @@ function calc() {
   document.getElementById("calc-out").innerHTML = [
     box(`${sg(ev)}${Math.abs(100 * ev).toFixed(1)}%`, "ROI: average profit per $100", ev >= 0 ? "pos" : "neg"),
     box(`${sg(ev)}${Math.abs(n * ev).toFixed(1)} u`, `expected profit over ${n} bets`, ev >= 0 ? "pos" : "neg"),
-    box(`${Math.round(100 * pLoss)} of 100`, `chance you're down after ${n} bets`),
+    box(`${Math.round(100 * pLoss)}%`, `chance you're down after ${n} bets`),
     box(`±${(1.96 * sd).toFixed(0)} u`, "normal swing around that (95% of the time)"),
     box(kelly > 0 ? `${(100 * kelly / 4).toFixed(1)}%` : "0%", "of bankroll per bet (¼ Kelly)"),
-    box("52.4 of 100", "break-even at −110"),
+    box("52.4%", "break-even at −110"),
   ].join("");
 }
 
@@ -801,8 +801,8 @@ function charts() {
   const pts = DATA.games.filter((g) => g.spread_open != null).map((g) => ({ x: -g.spread_open, y: g.margin, t: `${g.away} @ ${g.home}` }));
   const lim = Math.ceil(Math.max(10, ...pts.flatMap((p) => [Math.abs(p.x), Math.abs(p.y)])) / 10) * 10;
   plot(document.getElementById("scatter"), pts, { min: -lim, max: lim, ticks: [-lim, -lim / 2, 0, lim / 2, lim], fmt: (t) => `${t > 0 ? "+" : ""}${t}`, xl: "Home margin, sportsbooks", yl: "Home margin, model" });
-  const rel = DATA.calibration.reliability.map((r) => ({ x: r.predicted, y: r.actual, r: 3 + Math.sqrt(r.n) / 5, t: `said ${of100(r.predicted)}, happened ${of100(r.actual)} of 100 (${r.n} games)` }));
-  plot(document.getElementById("calib"), rel, { min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: (t) => `${Math.round(100 * t)}`, xl: "Model said (of 100)", yl: "Actually happened" });
+  const rel = DATA.calibration.reliability.map((r) => ({ x: r.predicted, y: r.actual, r: 3 + Math.sqrt(r.n) / 5, t: `said ${of100(r.predicted)}%, happened ${of100(r.actual)}% (${r.n} games)` }));
+  plot(document.getElementById("calib"), rel, { min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: (t) => `${Math.round(100 * t)}`, xl: "Model said (%)", yl: "Actually happened (%)" });
 }
 
 function reportCard() {
