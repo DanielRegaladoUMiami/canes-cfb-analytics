@@ -165,7 +165,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+# /site  (mkdocs default; our site/ is the weekly card and is tracked)
 
 # mypy
 .mypy_cache/
