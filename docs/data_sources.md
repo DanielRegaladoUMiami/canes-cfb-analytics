@@ -39,3 +39,19 @@ Notebooks read it with `os.environ["CFBD_API_KEY"]`.
   blanks any moneyline whose de-vigged probability is more than 15 points from what the
   closing spread implies. Without this filter a fake +12% to +42% moneyline ROI appears.
 - **Weather-shortened games** (3) are flagged `shortened` and excluded from period targets.
+
+## Added in round 4 (September 2026)
+
+| Need | Source | Access |
+|---|---|---|
+| Game-time weather, past games | Meteostat hourly station observations (bulk.meteostat.net), nearest station within 60 km | Free, no key; one file per station, cached |
+| Weather forecast, upcoming games | Open-Meteo forecast API | Free, no key; one call per venue per run |
+| Venue coordinates | CFBD `/venues` (else city match, else Open-Meteo geocoding) | CFBD key |
+| Passing box score 2016+ (QB starters) | CFBD `/games/players?category=passing` | CFBD key, ~18 calls per season |
+| Full player box score, current season | CFBD `/games/players` | CFBD key, ~18 calls per run |
+| Rosters | CFBD `/roster` | CFBD key, 1 call per run |
+| Halves, quarters, team totals prices | Kalshi public market data (`api.elections.kalshi.com/trade-api/v2`) | Free, no key; history kept only for recent weeks |
+
+**Injuries:** no free source publishes college football injury or availability reports as
+data (ESPN's injury endpoints return nothing for college football; CFBD has none). The
+site uses a proxy: key players who recorded no stats in their team's most recent game.

@@ -51,3 +51,14 @@ Last updated: 2026-09-23 (2026 season, week 4). Details for every finished item 
 - [x] Weekly card website in a sports-app layout (Best Bets, game cards, Your Call,
       Betting 101, Report Card, Model Check)
 - [x] Quarto + LaTeX book documenting everything
+
+## Round 4 (2026-09-24)
+
+- [x] Closing-line value of the practice rules (edge4 +0.45 pts, positive every season)
+- [x] Weather (wind, rain, temperature): adopted, total MAE better in 3 of 3 seasons
+- [x] Quarterback features: tested, not adopted
+- [x] Kalshi halves/quarters/team totals: calibrated probabilities, price backtest,
+      not adopted for picks; shown as information, logged on paper
+- [x] Rosters, key players and a "no stats last game" injury proxy on the site
+- [ ] Test the injury proxy as a model feature (needs box scores 2016–2025, ~180 CFBD calls)
+- [ ] Bowls and blowouts (#11)

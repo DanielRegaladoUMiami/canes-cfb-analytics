@@ -254,3 +254,92 @@ def clean_moneylines(lines: pd.DataFrame, max_gap: float = 0.15) -> pd.DataFrame
     bad = np.abs(p_ml - p_spread) > max_gap
     out.loc[bad, ["home_ml", "away_ml"]] = np.nan
     return out
+
+
+def load_passing(seasons: list[int], current_season: int | None = None) -> pd.DataFrame:
+    """Passing box score per player-game (C/ATT, yards): one row per passer.
+
+    One call per season-week (regular) plus one per postseason. The current season's
+    weeks are refreshed so new games appear."""
+    rows = []
+    for season in seasons:
+        weeks = [("regular", w) for w in range(0, 17)] + [("postseason", 1)]
+        for season_type, week in weeks:
+            try:
+                data = get(
+                    "/games/players",
+                    refresh=_refresh(season, current_season),
+                    year=season, week=week, seasonType=season_type, category="passing",
+                )  # fmt: skip
+            except httpx.HTTPStatusError:
+                continue
+            for g in data:
+                for t in g["teams"]:
+                    stats = {}
+                    for c in t["categories"]:
+                        for typ in c["types"]:
+                            for a in typ["athletes"]:
+                                stats.setdefault((a["id"], a["name"]), {})[typ["name"]] = a["stat"]
+                    for (pid, name), s in stats.items():
+                        comp, _, att = s.get("C/ATT", "0/0").partition("/")
+                        rows.append(
+                            {
+                                "game_id": int(g["id"]),
+                                "team": t["team"],
+                                "player_id": pid,
+                                "player": name,
+                                "completions": _num(comp),
+                                "attempts": _num(att),
+                                "pass_yards": _num(s.get("YDS")),
+                            }  # fmt: skip
+                        )
+    return pd.DataFrame(rows)
+
+
+def _num(x) -> float:
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return float("nan")
+
+
+def load_box(season: int, current_season: int | None = None) -> pd.DataFrame:
+    """Full player box score for one season: one row per player-game with the stats used
+    for usage and availability (pass attempts/yards, carries, rushing yards, receptions,
+    receiving yards, tackles). A player with a row recorded at least one stat."""
+    rows = []
+    weeks = [("regular", w) for w in range(0, 17)] + [("postseason", 1)]
+    for season_type, week in weeks:
+        try:
+            data = get("/games/players", refresh=_refresh(season, current_season),
+                       year=season, week=week, seasonType=season_type)  # fmt: skip
+        except httpx.HTTPStatusError:
+            continue
+        for g in data:
+            for t in g["teams"]:
+                players: dict[tuple, dict] = {}
+                for c in t["categories"]:
+                    for typ in c["types"]:
+                        for a in typ["athletes"]:
+                            p = players.setdefault((a["id"], a["name"]), {})
+                            key = f"{c['name']}_{typ['name']}"
+                            if key == "passing_C/ATT":
+                                p["pass_att"] = _num(str(a["stat"]).partition("/")[2])
+                            elif key in BOX_STATS:
+                                p[BOX_STATS[key]] = _num(a["stat"])
+                            p.setdefault("any", 1)
+                for (pid, name), s in players.items():
+                    rows.append({"game_id": int(g["id"]), "team": t["team"], "player_id": pid,
+                                 "player": name, "week": week, "season_type": season_type,
+                                 **s})  # fmt: skip
+    return pd.DataFrame(rows).drop(columns="any", errors="ignore")
+
+
+BOX_STATS = {
+    "passing_YDS": "pass_yds",
+    "rushing_CAR": "carries",
+    "rushing_YDS": "rush_yds",
+    "receiving_REC": "receptions",
+    "receiving_YDS": "rec_yds",
+    "defensive_TOT": "tackles",
+}

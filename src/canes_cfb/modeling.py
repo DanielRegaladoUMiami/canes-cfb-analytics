@@ -26,11 +26,13 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
 
-from canes_cfb.features import cumulative_sets
+from canes_cfb.features import WEATHER, cumulative_sets
 from canes_cfb.validation import walk_forward
 
 # +preseason adopted 2026-09-23 (decided on 2021-23, confirmed on 2024-25).
-FEATURES = cumulative_sets()["+preseason"]
+# Period models keep the pre-weather set (weather was tested on team points only).
+FEATURES_BASE = cumulative_sets()["+preseason"]
+FEATURES = FEATURES_BASE + WEATHER
 SEED = 7
 
 

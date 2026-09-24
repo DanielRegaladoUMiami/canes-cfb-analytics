@@ -19,22 +19,22 @@
       "ROI %": 4.3
     },
     "light": {
-      "bets": 172,
-      "won": 85,
-      "win %": 49.4,
+      "bets": 173,
+      "won": 86,
+      "win %": 49.7,
       "avg price+fee": 0.534,
       "avg model chance": 0.587,
-      "profit per contract": -6.87,
-      "ROI %": -7.5
+      "profit per contract": -6.38,
+      "ROI %": -6.9
     },
     "pass": {
-      "bets": 1471,
+      "bets": 1470,
       "won": 780,
-      "win %": 53.0,
-      "avg price+fee": 0.551,
-      "avg model chance": 0.543,
-      "profit per contract": -30.32,
-      "ROI %": -3.7
+      "win %": 53.1,
+      "avg price+fee": 0.552,
+      "avg model chance": 0.544,
+      "profit per contract": -31.52,
+      "ROI %": -3.9
     },
     "check_news": {
       "bets": 66,
@@ -47,13 +47,13 @@
     }
   },
   "picks (best + lean)": {
-    "bets": 299,
-    "won": 152,
-    "win %": 50.8,
+    "bets": 300,
+    "won": 153,
+    "win %": 51.0,
     "avg price+fee": 0.522,
     "avg model chance": 0.591,
-    "profit per contract": -4.09,
-    "ROI %": -2.6
+    "profit per contract": -3.6,
+    "ROI %": -2.3
   },
   "by market": {
     "1H margin": {
@@ -115,7 +115,7 @@
       "won": 20,
       "win %": 62.5,
       "avg price+fee": 0.527,
-      "avg model chance": 0.602,
+      "avg model chance": 0.601,
       "profit per contract": 3.15,
       "ROI %": 18.7
     },
@@ -133,7 +133,7 @@
       "won": 14,
       "win %": 50.0,
       "avg price+fee": 0.524,
-      "avg model chance": 0.591,
+      "avg model chance": 0.59,
       "profit per contract": -0.68,
       "ROI %": -4.6
     },
@@ -147,13 +147,13 @@
       "ROI %": -8.5
     },
     "Q3 total": {
-      "bets": 32,
-      "won": 12,
-      "win %": 37.5,
-      "avg price+fee": 0.523,
-      "avg model chance": 0.6,
-      "profit per contract": -4.73,
-      "ROI %": -28.3
+      "bets": 33,
+      "won": 13,
+      "win %": 39.4,
+      "avg price+fee": 0.522,
+      "avg model chance": 0.598,
+      "profit per contract": -4.24,
+      "ROI %": -24.6
     },
     "Q4 margin": {
       "bets": 24,
@@ -169,7 +169,7 @@
       "won": 9,
       "win %": 69.2,
       "avg price+fee": 0.526,
-      "avg model chance": 0.598,
+      "avg model chance": 0.599,
       "profit per contract": 2.16,
       "ROI %": 31.6
     }

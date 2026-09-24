@@ -13,8 +13,11 @@ period, all judged against the closing line.
 
 ## Current milestone
 2026 season in practice mode: weekly predictions, paper picks and the weekly card run from
-`scripts/predict_week.py` → `grade_paper.py` → `build_site.py` (GitHub Action, Wednesdays); `pages.yml` then deploys `site/` to GitHub Pages.
-Next model work: starting-QB/injury information, weather, bowls (issues #11, #8).
+`scripts/predict_week.py` → `grade_paper.py` → `kalshi_snapshot.py` → `build_site.py`
+(GitHub Action, Wednesdays; Fridays re-snapshot Kalshi); `pages.yml` then deploys `site/`
+to GitHub Pages. Weather is in the model (round 4); QB features and Kalshi period picks
+were tested and not adopted (see `docs/experiments/2026-09-24_*`).
+Next model work: an injury proxy from box scores (key player missed last game), bowls.
 
 ## Local rules
 - Conventional Commits (feat:, fix:, docs:, refactor:, chore:, test:)
@@ -45,6 +48,10 @@ uv run python scripts/calibrate.py         # probabilities from out-of-sample 20
 uv run python scripts/scorecard.py         # report card for every target
 uv run python scripts/build_site.py        # weekly card website (site/index.html)
 uv run python scripts/backfill_season.py   # re-predict finished weeks with no live prediction
+uv run python scripts/kalshi_snapshot.py   # Kalshi prices vs the model (information only)
+uv run python scripts/kalshi_backtest.py   # Kalshi period picks on past weeks (real prices)
+uv run python scripts/period_calibration.py  # probabilities for any half/quarter line
+uv run python scripts/clv_history.py       # closing-line value of the practice rules
 ```
 
 - The 2025 test in `04_team_total/full_game` is run once. Don't re-tune or re-select

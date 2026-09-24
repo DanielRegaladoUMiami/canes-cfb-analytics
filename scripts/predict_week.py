@@ -32,10 +32,10 @@ import sys
 import numpy as np
 import pandas as pd
 
-from canes_cfb import betting, cfbd, espn
+from canes_cfb import betting, cfbd, espn, weather
 from canes_cfb.features import build_all
 from canes_cfb.modeling import (
-    FEATURES,
+    FEATURES_BASE,
     SPECS,
     ensemble_predict,
     fit_predict,
@@ -68,6 +68,19 @@ def refresh() -> None:
     )
     cfbd.load_coaches(seasons).to_parquet(RAW / "coaches.parquet", index=False)
     cfbd.load_preseason_ap(seasons).to_parquet(RAW / "preseason_ap.parquet", index=False)
+    # This season's player box scores (key players, who missed the last game) and rosters.
+    cfbd.load_box(SEASON, current_season=SEASON).to_parquet(
+        RAW / f"box_{SEASON}.parquet", index=False
+    )
+    pd.DataFrame(cfbd.get("/roster", refresh=True, year=SEASON)).to_parquet(
+        RAW / f"roster_{SEASON}.parquet", index=False
+    )
+    # Game-time weather: station observations for played games, forecast for upcoming ones.
+    games = pd.read_parquet(RAW / "games.parquet")
+    venues = pd.DataFrame(cfbd.get("/venues"))
+    weather.load(games[games.season >= 2016], venues, SEASON).to_parquet(
+        RAW / "weather.parquet", index=False
+    )
 
 
 HISTORY_COLS = ["season", "season_type", "week", "game_id", "start_utc", "home", "away",
@@ -136,7 +149,7 @@ def predict_slate(features: pd.DataFrame, rows: pd.DataFrame) -> pd.DataFrame:
     )
     for p in PERIODS:
         rows[f"pred_{p.value}"] = fit_predict_period(
-            p, period_train, period_rows, FEATURES, params["lightgbm"]["params"]
+            p, period_train, period_rows, FEATURES_BASE, params["lightgbm"]["params"]
         )
 
     games = pd.read_parquet(RAW / "games.parquet")

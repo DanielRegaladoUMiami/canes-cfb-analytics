@@ -273,6 +273,23 @@ details.check-all > summary { cursor: pointer; font-family: var(--display); font
 .rc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 .gap-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-right: 6px; }
 td.win { color: var(--good); font-weight: 700; }
+/* context + team news */
+.context { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px; border-top: 1px solid var(--rule); }
+.ctx { font-size: 0.78rem; font-weight: 700; border-radius: 3px; padding: 3px 8px; background: var(--card-2); color: var(--ink-2); border: 1px solid var(--rule); }
+.ctx.alert { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.ctx.windy { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.news { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.news h4 { margin: 0 0 6px; font-family: var(--display); font-size: 1.05rem; text-transform: uppercase; }
+.kp { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; font-size: 0.86rem; padding: 4px 0; border-bottom: 1px solid var(--rule); }
+.kp .r { font-weight: 700; color: var(--ink-3); font-size: 0.76rem; text-transform: uppercase; }
+.kp .st { font-size: 0.74rem; font-weight: 800; }
+.kp .st.out { color: var(--warn); }
+.kp .st.in { color: var(--good); }
+.roster { max-height: 360px; overflow: auto; }
+.roster table { font-size: 0.82rem; }
+.roster th, .roster td { padding: 4px 8px; }
+.roster td:nth-child(2), .roster th:nth-child(2) { text-align: left; white-space: normal; }
+
 /* when to bet */
 .rule { background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: 12px 14px; display: grid; gap: 10px; margin-bottom: 14px; }
 .rule h3 { font-size: 1.15rem; font-weight: 800; text-transform: uppercase; }
@@ -581,7 +598,8 @@ function card(g) {
       <div class="odd"><span class="label">Total</span><span class="val">O/U ${ln(g.total_open)}</span><span class="sub">now ${ln(g.total_now)} · model ${n1(g.total)}</span></div>
       <div class="odd"><span class="label">Moneyline</span><span class="val">${esc(abbr(g, "away"))} ${price(g.away_ml)} · ${esc(abbr(g, "home"))} ${price(g.home_ml)}</span><span class="sub">what each side pays</span></div>
     </div>
-    <button type="button" class="g-toggle" aria-expanded="false" aria-controls="detail-${g.id}" data-id="${g.id}"><span>Game details · Your call · By quarter</span><span class="chev" aria-hidden="true">▾</span></button>
+    ${contextRow(g)}
+    <button type="button" class="g-toggle" aria-expanded="false" aria-controls="detail-${g.id}" data-id="${g.id}"><span>Game details</span><span class="chev" aria-hidden="true">▾</span></button>
     <div class="g-detail" id="detail-${g.id}" hidden></div>
   </article>`;
 }
@@ -647,6 +665,9 @@ function detail(g, panel) {
       <button type="button" role="tab" id="tab-${id}-why" aria-controls="p-${id}-why" aria-selected="true">Why</button>
       <button type="button" role="tab" id="tab-${id}-call" aria-controls="p-${id}-call" aria-selected="false">Your Call</button>
       <button type="button" role="tab" id="tab-${id}-q" aria-controls="p-${id}-q" aria-selected="false">By Quarter</button>
+      <button type="button" role="tab" id="tab-${id}-news" aria-controls="p-${id}-news" aria-selected="false">Team News</button>
+      <button type="button" role="tab" id="tab-${id}-roster" aria-controls="p-${id}-roster" aria-selected="false" data-roster="1">Roster</button>
+      <button type="button" role="tab" id="tab-${id}-kal" aria-controls="p-${id}-kal" aria-selected="false">Kalshi</button>
     </div>
     <div class="panel" role="tabpanel" id="p-${id}-why" aria-labelledby="tab-${id}-why">
       <div class="why-box"><p class="label" style="color:var(--accent)">${g.tier === "pass" ? "Why we pass" : `Why ${esc(g.bet)}`}</p><p>${esc(g.why)}</p></div>
@@ -666,11 +687,15 @@ function detail(g, panel) {
     </div>
     <div class="panel" role="tabpanel" id="p-${id}-q" aria-labelledby="tab-${id}-q" hidden>
       <div class="table-wrap"><table><thead><tr><th>Period</th><th>${esc(abbr(g, "away"))}</th><th>${esc(abbr(g, "home"))}</th><th>Total</th><th>Spread</th></tr></thead><tbody>${quarters}</tbody></table></div>
-      <p class="small muted">Projected points, rounded so the quarters add up to the halves and the halves to the full game (2nd half includes overtime). Spread = who's ahead in that period and by how much. No sportsbook lines for halves and quarters yet, so no picks here.</p>
-    </div>`;
+      <p class="small muted">Projected points, rounded so the quarters add up to the halves and the halves to the full game (2nd half includes overtime). Spread = who's ahead in that period and by how much. Prices for halves and quarters are in the Kalshi tab.</p>
+    </div>
+    <div class="panel" role="tabpanel" id="p-${id}-news" aria-labelledby="tab-${id}-news" hidden>${newsPanel(g)}</div>
+    <div class="panel" role="tabpanel" id="p-${id}-roster" aria-labelledby="tab-${id}-roster" hidden><p class="small muted">Loading rosters…</p></div>
+    <div class="panel" role="tabpanel" id="p-${id}-kal" aria-labelledby="tab-${id}-kal" hidden>${kalshiPanel(g)}</div>`;
   const tabs = panel.querySelectorAll('[role="tab"]');
   tabs.forEach((t) => t.addEventListener("click", () => {
     tabs.forEach((x) => { x.setAttribute("aria-selected", String(x === t)); document.getElementById(x.getAttribute("aria-controls")).hidden = x !== t; });
+    if (t.dataset.roster) rosterPanel(g, document.getElementById(`p-${id}-roster`));
   }));
   const slider = document.getElementById(`cp-${id}`);
   const update = (reset) => {
@@ -808,6 +833,62 @@ function resCard(r) {
     </div>
     <details><summary>By half and quarter</summary><p class="small muted" style="padding:8px 12px 0">± = how many points the model was off.</p><div class="table-wrap"><table><thead><tr><th>${esc(abbr(g, "away"))}–${esc(abbr(g, "home"))}</th><th>Model</th><th>Final</th><th>Total ±</th><th>Spread ±</th></tr></thead><tbody>${periods}</tbody></table></div></details>
   </article>`;
+}
+
+const ROLE_ORDER = { QB: 0, RB: 1, "WR/TE": 2, Defense: 3 };
+function contextRow(g) {
+  const chips = [];
+  const w = g.weather;
+  if (w) {
+    if (w.indoor) chips.push(`<span class="ctx">Indoors</span>`);
+    else {
+      chips.push(`<span class="ctx ${w.wind >= 15 ? "windy" : ""}">Wind ${w.wind} mph</span>`);
+      if (w.rain >= 0.05) chips.push(`<span class="ctx ${w.rain >= 0.1 ? "windy" : ""}">Rain ${w.rain} in</span>`);
+      chips.push(`<span class="ctx">${w.temp}°F</span>`);
+    }
+  }
+  for (const side of ["away", "home"]) {
+    for (const k of g[`${side}_keys`] || []) {
+      if (k.missed_last) chips.push(`<span class="ctx alert" title="Had stats earlier this season but none last game">${esc(abbr(g, side))} ${esc(k.role === "Defense" ? "DEF" : k.role)} ${esc(k.player)}: no stats last game</span>`);
+    }
+  }
+  return chips.length ? `<div class="context">${chips.join("")}</div>` : "";
+}
+
+function newsPanel(g) {
+  const team = (side) => {
+    const ks = [...(g[`${side}_keys`] || [])].sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
+    const rows = ks.map((k) => `<div class="kp"><span class="r">${esc(k.role)}</span><span><strong>${esc(k.player)}</strong> <span class="muted small">${k.per_game} ${esc(k.unit)}/game · ${k.games} of ${k.team_games} games</span></span><span class="st ${k.missed_last ? "out" : "in"}">${k.missed_last ? "No stats last game" : "Played last game"}</span></div>`).join("");
+    return `<div><h4>${esc(side === "home" ? g.home : g.away)}</h4>${rows || `<p class="small muted">No games played yet.</p>`}</div>`;
+  };
+  const w = g.weather;
+  const wx = !w ? "No weather data for this game." : w.indoor ? "Indoors: weather doesn't matter." : `Kickoff forecast: wind ${w.wind} mph, ${w.rain >= 0.05 ? `${w.rain} in of rain` : "dry"}, ${w.temp}°F. Strong wind (15+ mph) and rain lower scoring; the model includes the forecast.`;
+  return `<div class="why-box small">${esc(wx)}</div><div class="news">${team("away")}${team("home")}</div>
+    <p class="small muted">Key players = the QB, top 2 rushers, top 3 receivers and top 3 tacklers this season. "No stats last game" means he recorded nothing in his team's most recent game: often an injury, suspension or benching. College football has no injury feed we can use, so check the team's official availability report before betting.</p>`;
+}
+
+function kalshiPanel(g) {
+  const k = g.kalshi || [];
+  if (!k.length) return `<p class="small muted">No Kalshi markets for this game yet. Quarter markets usually open Thursday.</p>`;
+  const per = { Game: 0, "1H": 1, "2H": 2, Q1: 3, Q2: 4, Q3: 5, Q4: 6 };
+  const rows = [...k].sort((a, b) => per[a.period] - per[b.period]).map((x) => `<tr><td style="white-space:normal">${esc(x.market)}</td><td>${Math.round(100 * x.kalshi)}¢</td><td>${of100(x.model)}%</td><td class="${x.edge > 0 ? "win" : ""}">${x.edge > 0 ? "+" : ""}${Math.round(100 * x.edge)}</td></tr>`).join("");
+  return `<div class="table-wrap"><table><thead><tr><th>Market (best side)</th><th>Kalshi price</th><th>Model</th><th>Edge</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="small muted"><strong>Information, not picks.</strong> A Kalshi price of 48¢ means the market gives it 48%. Edge = model chance minus price and fee, in points. We tested these markets on 2026 weeks 1–3 with real Kalshi prices: 300 picks won 51% and lost 2.3% after fees, and Kalshi's prices were slightly more accurate than the model. So none of these are recommended; they're tracked on paper to keep testing.</p>`;
+}
+
+let ROSTERS = null;
+async function rosterPanel(g, el) {
+  if (el.dataset.ready) return;
+  try {
+    if (!ROSTERS) ROSTERS = await (await fetch("rosters.json", { cache: "no-cache" })).json();
+  } catch (e) { el.innerHTML = `<p class="small muted">Rosters aren't available here.</p>`; return; }
+  el.dataset.ready = "1";
+  const team = (side) => {
+    const r = ROSTERS[String(side === "home" ? g.home_id : g.away_id)] || [];
+    const rows = r.map((p) => `<tr><td>${esc(p[0])}</td><td>${esc(p[2])}</td><td>${p[1] ?? ""}</td><td>${esc(p[3])}</td><td>${p[4] ?? ""}</td><td>${p[5] ?? ""}</td></tr>`).join("");
+    return `<div><h4 style="margin:0 0 6px;font-family:var(--display);text-transform:uppercase">${esc(side === "home" ? g.home : g.away)} <span class="small muted">${r.length} players</span></h4><div class="roster table-wrap"><table><thead><tr><th>Pos</th><th>Name</th><th>#</th><th>Yr</th><th>Ht</th><th>Wt</th></tr></thead><tbody>${rows || `<tr><td colspan="6">Not available</td></tr>`}</tbody></table></div></div>`;
+  };
+  el.innerHTML = `<div class="news">${team("away")}${team("home")}</div><p class="small muted">2026 rosters from CollegeFootballData.</p>`;
 }
 
 function checks() {

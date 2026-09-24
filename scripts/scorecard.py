@@ -17,7 +17,7 @@ import pandas as pd
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 
 from canes_cfb import calibration, cfbd
-from canes_cfb.modeling import FEATURES
+from canes_cfb.modeling import FEATURES_BASE
 from canes_cfb.paths import PROCESSED, RAW, ROOT
 from canes_cfb.periods import PERIODS, add_period_shares, add_period_targets, fit_predict_period
 
@@ -110,7 +110,7 @@ def main() -> None:
         errs, const = [], []
         for season in SEASONS:
             train, test = base[base.season < season], base[base.season == season]
-            pred = fit_predict_period(p, train, test, FEATURES, lgb_params)
+            pred = fit_predict_period(p, train, test, FEATURES_BASE, lgb_params)
             errs.append(np.abs(test[target] - pred))
             const.append(np.abs(test[target] - train[target].mean()))
         periods[p.value] = {

@@ -548,6 +548,11 @@ FEATURE_SETS_V2: dict[str, list[str]] = {
 }  # fmt: skip
 
 
+# Game-time weather (round 4, adopted 2026-09-24: total MAE better in 3 of 3 decision
+# seasons, bootstrap 95% CI [+0.008, +0.064]; docs/experiments/2026-09-24_weather_qb_results.md)
+WEATHER = ["wind_mph", "precip_in", "temp_f"]
+
+
 def cumulative_sets(include_v2: bool = True) -> dict[str, list[str]]:
     """raw_form, +ratings, ... +priors: each adds one family (v1 then, optionally, v2)."""
     families = {**FEATURE_SETS, **FEATURE_SETS_V2} if include_v2 else FEATURE_SETS
@@ -602,4 +607,8 @@ def build_all(raw_dir) -> pd.DataFrame:
         teams=teams,
         preseason=preseason,
     )
+    if (raw_dir / "weather.parquet").exists():
+        feats = feats.merge(read("weather")[["game_id", *WEATHER]], on="game_id", how="left")
+    else:
+        feats[WEATHER] = np.nan
     return add_market_lines(feats, read("lines"), games)

@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 import numpy as np
 import pandas as pd
 
-from canes_cfb import betting, calibration, cfbd
+from canes_cfb import availability, betting, calibration, cfbd
 from canes_cfb.paths import PREDICTIONS, RAW, ROOT
 from canes_cfb.periods import PERIODS
 
@@ -254,13 +254,43 @@ def past_results(season: int, cal: dict, games: pd.DataFrame) -> list[dict]:
     return out
 
 
+def write_rosters(season: int, g: pd.DataFrame, teams: pd.DataFrame) -> None:
+    """site/rosters.json: this week's teams, {team_id: [[pos, #, name, class, ht, wt], ...]}
+    (loaded by the page only when a Roster tab is opened)."""
+    path = RAW / f"roster_{season}.parquet"
+    if not path.exists():
+        return
+    r = pd.read_parquet(path)
+    ids = set(g.home_id.astype(int)) | set(g.away_id.astype(int))
+    name_to_id = teams[teams.team_id.isin(ids)].drop_duplicates("team").set_index("team").team_id
+    r = r[r.team.isin(name_to_id.index)].copy()
+    r["team_id"] = r.team.map(name_to_id).astype(int)
+    yr = {1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR", 6: "GR"}
+    order = ["QB", "RB", "FB", "WR", "TE", "OL", "OT", "OG", "C", "DL", "DE", "DT", "NT",
+             "EDGE", "LB", "ILB", "OLB", "DB", "CB", "S", "PK", "P", "LS", "ATH"]  # fmt: skip
+    rank = {p: i for i, p in enumerate(order)}
+    out = {}
+    for tid, d in r.groupby("team_id"):
+        d = d.assign(o=d.position.map(rank).fillna(99)).sort_values(["o", "jersey"])
+        out[int(tid)] = [
+            [x.position if isinstance(x.position, str) else "",
+             None if pd.isna(x.jersey) else int(x.jersey),
+             " ".join(n for n in (x.firstName, x.lastName) if isinstance(n, str)),
+             yr.get(x.year, ""),
+             None if pd.isna(x.height) else f"{int(x.height) // 12}-{int(x.height) % 12}",
+             None if pd.isna(x.weight) else int(x.weight)]
+            for x in d.itertuples()
+        ]  # fmt: skip
+    (SITE / "rosters.json").write_text(json.dumps(out, separators=(",", ":"), allow_nan=False))
+
+
 def check(name: str, ok: bool | None, detail: str, warn: bool = False) -> dict:
     status = "pass" if ok else ("warn" if warn or ok is None else "fail")
     return {"name": name, "status": status, "detail": detail}
 
 
 def main() -> None:
-    latest = sorted(PREDICTIONS.glob("*.parquet"))[-1]
+    latest = sorted(p for p in PREDICTIONS.glob("*.parquet") if "_kalshi" not in p.name)[-1]
     g = pd.read_parquet(latest)
     cal = json.loads((ROOT / "models" / "calibration.json").read_text())
     games = pd.read_parquet(RAW / "games.parquet")
@@ -364,6 +394,36 @@ def main() -> None:
         ),
     ]
 
+    # ---------------------------------------------------------------- context
+    wx = pd.read_parquet(RAW / "weather.parquet") if (RAW / "weather.parquet").exists() else None
+    wx = wx.set_index("game_id") if wx is not None else None
+    teams = pd.read_parquet(RAW / "teams.parquet")
+    box_path = RAW / f"box_{season}.parquet"
+    keys = (
+        availability.key_players(pd.read_parquet(box_path), games[games.season == season], teams)
+        if box_path.exists()
+        else pd.DataFrame(columns=["team_id"])
+    )
+    key_by_team = {int(t): d.drop(columns="team_id").to_dict("records")
+                   for t, d in keys.groupby("team_id")}  # fmt: skip
+    write_rosters(season, g, teams)
+    kal_path = sorted(PREDICTIONS.glob(f"{season}_*_w{week}_kalshi.parquet"))
+    kal = pd.read_parquet(kal_path[-1]) if kal_path else pd.DataFrame(columns=["game_id"])
+    kal_by_game = {
+        int(gid): d.sort_values(["period", "stat"]).apply(
+            lambda x: {"market": x.bet, "period": x.period, "stat": x.stat,
+                       "kalshi": round(float(x.price), 2), "model": round(float(x.p_side), 3),
+                       "edge": round(float(x.edge), 3), "tier": x.tier}, axis=1).tolist()
+        for gid, d in kal[kal.tier != "info"].groupby("game_id")
+    }  # fmt: skip
+
+    def weather_of(gid: int) -> dict | None:
+        if wx is None or gid not in wx.index or pd.isna(wx.at[gid, "wind_mph"]):
+            return None
+        w = wx.loc[gid]
+        return {"wind": round(float(w.wind_mph)), "rain": round(float(w.precip_in), 2),
+                "temp": round(float(w.temp_f)), "indoor": bool(w.indoor)}  # fmt: skip
+
     # ---------------------------------------------------------------- page data
     def r(x, n=1):
         return None if pd.isna(x) else round(float(x), n)
@@ -380,6 +440,8 @@ def main() -> None:
                 "kickoff": row.start_utc.isoformat(),
                 "home": row.home,
                 "away": row.away,
+                "home_id": int(row.home_id),
+                "away_id": int(row.away_id),
                 "home_team": meta.get(int(row.home_id), {}),
                 "away_team": meta.get(int(row.away_id), {}),
                 "pred_home": r(row.pred),
@@ -412,6 +474,10 @@ def main() -> None:
                 "bet": bet_label,
                 "why": why,
                 "periods": periods,
+                "weather": weather_of(int(row.game_id)),
+                "home_keys": key_by_team.get(int(row.home_id), []),
+                "away_keys": key_by_team.get(int(row.away_id), []),
+                "kalshi": kal_by_game.get(int(row.game_id), []),
             }
         )
 

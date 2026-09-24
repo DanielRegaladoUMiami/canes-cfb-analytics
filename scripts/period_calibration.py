@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from canes_cfb import ladder
-from canes_cfb.modeling import FEATURES
+from canes_cfb.modeling import FEATURES_BASE
 from canes_cfb.paths import PROCESSED, RAW, ROOT
 from canes_cfb.periods import PERIODS, add_period_shares, add_period_targets, fit_predict_period
 
@@ -37,7 +37,7 @@ def oos_team_periods() -> pd.DataFrame:
     for p in PERIODS:
         for season in SEASONS:
             train, test = base[base.season < season], base[base.season == season]
-            pred = fit_predict_period(p, train, test, FEATURES, params["lightgbm"]["params"])
+            pred = fit_predict_period(p, train, test, FEATURES_BASE, params["lightgbm"]["params"])
             parts.append(
                 pd.DataFrame(
                     {

@@ -27,3 +27,15 @@ website's **Results** section compares it with the final scores.
 - `source = backfill`: weeks 1–3 of 2026, made afterwards by `scripts/backfill_season.py`
   with models refit only on games played before that week. Honest about the model, but
   not timestamped before kickoff. A backfill never overwrites a live prediction.
+
+## Week 4 of 2026 re-logged (2026-09-24, before kickoff)
+
+The weather model (round 4) was adopted before any week-4 game started, so week 4's
+picks were logged again with it; the earlier week-4 rows stay in git history.
+
+## Kalshi (information only)
+
+`<season>_kalshi.csv` logs the Best and Lean tiers of Kalshi half/quarter/team-total
+markets with the price at the snapshot (first price kept per market and side). They're
+**not** recommended: the backtest on 2026 weeks 1–3 lost 2.3% after fees
+(`docs/experiments/2026-09-24_kalshi_periods.md`). The log lets the season settle it.

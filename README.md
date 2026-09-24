@@ -17,19 +17,31 @@ seasons). Source: [`models/scorecard.json`](models/scorecard.json).
 
 | What we predict | Measure | Model | Sportsbooks | To make money you need |
 |---|---|---|---|---|
-| **Winner** | Picks the right winner | **70.8%** | 71.9% | a better price than the books, not just the winner |
-| | AUC (0.5 = coin flip, 1 = perfect) | **0.773** | 0.793 | |
+| **Winner** | Picks the right winner | **70.6%** | 71.9% | a better price than the books, not just the winner |
+| | AUC (0.5 = coin flip, 1 = perfect) | **0.772** | 0.793 | |
 | | Betting the moneyline where the model disagrees | **−4.5% ROI** | | positive ROI |
 | **Spread** | Average miss on the final margin | 12.7 pts | 12.1 pts | |
-| | Covers, betting the model's side vs the opening line | **50.6%** | | **52.4%** at −110 |
+| | Covers, betting the model's side vs the opening line | **50.1%** | | **52.4%** at −110 |
 | **Game total** | Average miss on total points | 12.9 pts | 12.5 pts | |
-| | Wins, betting the model's side vs the opening line | **50.7%** | | **52.4%** |
+| | Wins, betting the model's side vs the opening line | **51.0%** | | **52.4%** |
+| | …when the model is 4+ points off the opening total | **54.2%** (1,064 bets) | | **52.4%** |
 | **Team points** | Average miss on each team's points | 9.1 pts | 8.8 pts | |
-| **Halves / quarters** | Improvement over guessing the average | 1H −11%, Q2 −8%, Q4 ≈ 0% | (no lines yet) | |
+| **Halves / quarters** | Improvement over guessing the average | 1H −11%, Q2 −8%, Q4 −1% | Kalshi prices (see below) | |
 
-**One signal has held up:** games that look like shootouts (ratings project more than
-63.5 points) went **under about 56% of the time in every season 2021–2025**. That's
-what the weekly card recommends; everything else is marked *Pass*.
+**Two signals have held up, both on totals:** games that look like shootouts (ratings
+project more than 63.5 points) went **under 56.6% of the time**, and when the model is 4+
+points off the opening total its side won **54.2%**, with the line moving toward it before
+kickoff in all five seasons (closing-line value +0.45 points). The weekly card only
+recommends totals with a win chance of 54%+ (Lean) or 55%+ (Best Bet); everything else
+is marked *Pass*.
+
+**What's in the model now (round 4, September 2026):** game-time **weather** (wind,
+rain, temperature: forecast for upcoming games, station observations for the past)
+improved total-points error in all three test seasons and was adopted. **Quarterback**
+features (experience, efficiency, QB changes) were tested and added nothing. **Kalshi**
+prices for halves, quarters and team totals are shown next to the model's chance, but a
+backtest with real Kalshi prices (2026 weeks 1–3, 300 picks) lost 2.3% after fees, so
+they're information, not picks. Details in [`docs/experiments/`](docs/experiments/).
 
 ## How it works, in plain English
 
@@ -61,11 +73,14 @@ A GitHub Action runs every Wednesday (9:00 ET):
 4. **Build** the weekly card website → [`site/index.html`](site/index.html), published to
    [GitHub Pages](https://danielregaladoumiami.github.io/canes-cfb-analytics/) by `.github/workflows/pages.yml`
 
-The card shows Best Bets, every game with win chances, odds and a score breakdown (game,
-halves, quarters: each team's points, total and spread), **Results** (every finished game:
-what the model said vs the final score, right/wrong, and how many points it was off), a *Your Call* tool to
-test your own hunch against the price, Betting 101, the report card, and automated
-model checks.
+The card shows Best Bets, every game with win chances, odds, the kickoff weather and a
+score breakdown (game, halves, quarters: each team's points, total and spread). Each game
+has **Team News** (key players and anyone who recorded no stats in his team's last game:
+the closest thing to an injury report that free data allows), the full **Roster**, and
+**Kalshi** prices vs the model. **Results** grades every finished game (model vs final
+score, right/wrong, points off, line movement). Plus a *Your Call* tool, Betting 101, the
+report card, and automated model checks. On Fridays the Action refreshes Kalshi prices
+(quarter markets open on Thursday).
 
 ## Documentation
 
