@@ -1,46 +1,53 @@
-# Roadmap — Canes CFB Analytics
+# Roadmap: Canes CFB Analytics
 
-Pipeline detail: [`docs/pipeline.md`](docs/pipeline.md).
+Last updated: 2026-09-23 (2026 season, week 4). Details for every finished item are in
+[`docs/experiments/`](docs/experiments/) and the book ([`report/`](report/)).
 
-## Current milestone: v0.1 — data foundation
-- [x] Repo scaffold: market registry, model notebooks, data and evaluation notebooks
-- [x] Ingest games + quarter scores 2015–2026 from ESPN (10,630 games, validated)
-- [x] EDA: ~16,600 team-game rows; scoring trend, home field, quarters
-- [x] Get `CFBD_API_KEY` into `~/.zshrc` (#1)
-- [x] Ingest CFBD lines, advanced stats, talent, returning production (#3)
-- [ ] Find a source for half, quarter and team-total lines (#4)
-- [x] Feature engineering v1 (score-only): ridge ratings, Elo, matchup, context + ablation (#5)
-- [x] Feature engineering v2 (CFBD): efficiency, pace × efficiency, unit matchups, priors (#6), 9.30 vs market 8.91
-- [x] First backtest vs lines: not profitable yet; positive CLV vs opening lines
-- [x] Preseason features (portal, recruiting, new coach, preseason AP): early-season gap 1.96 → 1.84 (2021–23), 1.32 → 1.11 (2024–25)
-- [ ] Bowls and blowouts gaps (#11)
-- [ ] Weather features (needs a source)
+## Needs the owner (Daniel)
+- [ ] Add the `CFBD_API_KEY` repository secret so the Wednesday GitHub Action can run
+- [ ] Rotate the CFBD key (it was pasted in a chat) and update `~/.zshrc` and the secret
+- [ ] Decide whether to publish the weekly card publicly on GitHub Pages (auto-updates)
 
-## v0.2 — points per team model (full game)
-- [x] Market layer vs opening line (#7): tested; dropped (spreads noise, totals = base-rate artifact)
-- [x] Walk-forward CV + Optuna for linear, GLM, RF, XGBoost, LightGBM, CatBoost
-- [x] Ensemble / stacking; final picked on 2024 (random forest)
-- [x] Test once on 2025: MAE 8.94 vs market 8.70 open / 8.59 close
-- [x] Derive spread, total from team points; graded vs open and close
-- [x] Weekly predictions for 2026 (`scripts/predict_week.py`) + paper-trading log
-- [x] Weekly grading script + GitHub Action (Wednesdays)
-- [x] Nonlinearity insights (SHAP + market lens): shootout-under effect; paper rule B
-- [x] Half/quarter team-points models (accuracy; no period lines yet)
-- [x] Totals model on the nonlinear insights (#10): not adopted (overfit); rule B kept; A-vs-B conflicts skipped
-- [ ] Winner (moneyline) probabilities from predicted margin
-
-## v0.3 — dedicated markets
-- [ ] Dedicated spread, total and winner models: do they beat the derived version?
-- [ ] 1H / 2H spread, total, team total
-- [ ] Q1–Q4 spread and total
-
-## v0.4 — weekly operation
-- [ ] Weekly card: every model's picks ranked by edge vs current line
-- [ ] Track results and CLV through the 2026 season
+## Next
+- [ ] **Starting-QB changes and injuries**: the biggest information gap vs the market (#11)
+- [ ] **Weather** (wind) for totals, via Open-Meteo (#8)
+- [ ] **Bowls**: opt-outs, rest, bowl tier (#11)
+- [ ] **Blowouts**: game-script features (#11)
+- [ ] Grade week 4 and every week after; track results and CLV through 2026
+- [ ] End of 2026: compare the shadow model (average of 6) with the current model;
+      decide real money only if a full season beats 52.4% with positive CLV
+- [ ] Sportsbook lines for halves, quarters and team totals (#4): The Odds API
+      ($119 once for 2023–2025 history, or $30/month going forward)
 
 ## Done
-- Repo created (2026-09-23)
-- ESPN ingestion + EDA (2026-09-23)
-- Feature engineering v1: ratings 11.1 → 9.44 CV MAE (2026-09-23)
-- CFBD ingestion + features v2: 9.30 CV MAE; first backtest vs lines (2026-09-23)
-- Tuned zoo + ensemble + 2025 test; paper trading starts 2026 week 4 (2026-09-23)
+
+### Data
+- [x] 10,630 games 2015–2026 with scores by quarter (ESPN), validated
+- [x] Lines, efficiency, talent, returning production (CFBD); closing lines for 100% of
+      FBS games, opening lines from 2021
+- [x] Preseason data: transfer portal, recruiting, coaching changes, preseason AP poll
+- [x] Swapped moneylines (2.1% of games) detected and filtered
+
+### Features
+- [x] Opponent-adjusted ridge ratings refit every week (the biggest single gain: 11.1 → 9.44)
+- [x] Elo, matchup terms, context, CFBD efficiency, talent and returning production
+- [x] Preseason family, adopted: early-season gap vs market 1.96 → 1.84 (2021–23),
+      1.32 → 1.11 (2024–25)
+- [x] Nonlinearity search (SHAP + market lens): curves and thresholds matter, crosses don't
+
+### Models and evaluation
+- [x] Six models tuned with Optuna inside walk-forward CV; random forest chosen on 2024;
+      tested once on 2025
+- [x] Halves and quarters models
+- [x] Report card for every target (accuracy, AUC, MAE vs sportsbooks, by segment)
+- [x] Improvement rounds 2–3 under a pre-registered anti-overfitting rule: nothing
+      adopted; average-of-6 kept as a shadow model
+
+### Betting and operation
+- [x] Calibrated probabilities and expected value at −110
+- [x] Two pre-registered paper rules (A: model edge ≥ 4 vs opening total; B: shootout
+      under); conflicts are skipped
+- [x] Weekly GitHub Action: grade, predict, log picks, build the site
+- [x] Weekly card website in a sports-app layout (Best Bets, game cards, Your Call,
+      Betting 101, Report Card, Model Check)
+- [x] Quarto + LaTeX book documenting everything

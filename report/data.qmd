@@ -16,6 +16,7 @@ adv = pd.read_parquet(RAW / "advanced.parquet")
 | Betting lines: spread, total, moneyline, open and close | CollegeFootballData `/lines` [@cfbd] | Free key, 3,000 calls/month |
 | Efficiency per team-game: plays, EPA/PPA, success rate, explosiveness, pass/rush splits | CFBD `/stats/game/advanced` | Same key |
 | Talent composite, returning production | CFBD `/talent`, `/player/returning` | Same key |
+| Transfer portal (2021+), recruiting classes, coach hire dates, preseason AP poll | CFBD `/player/portal`, `/recruiting/teams`, `/coaches`, `/rankings` (week 1) | Same key |
 
 : Data sources. {#tbl-sources}
 
@@ -105,3 +106,12 @@ Two facts shape everything downstream:
 
 Consensus lines are the **median across books** (ESPN Bet, DraftKings, Bovada in recent
 seasons).
+
+## A data trap: swapped moneylines
+
+About 2.1% of FBS moneylines in 2021–2025 (mostly older providers) come with home and
+away **swapped**: the moneyline favorite is the spread underdog (for example, a team
+favored by 12 on the spread priced at +375). Left in, they made the model look like a
+gold mine on the moneyline (+12% to +42% ROI). `cfbd.clean_moneylines` now blanks any
+moneyline whose de-vigged probability is more than 15 points from what the closing spread
+implies; the honest moneyline result is −4.5% (@sec-reportcard).

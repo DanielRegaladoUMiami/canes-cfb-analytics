@@ -1,0 +1,71 @@
+# The weekly card website {#sec-website}
+
+```{python}
+exec(open("_common.py").read())
+import json
+cal = json.loads((ROOT / "models" / "calibration.json").read_text())
+```
+
+Every week the predictions become a website (`site/index.html`, built by
+`scripts/build_site.py`), designed for someone who isn't a betting expert. It's in
+English, laid out like a sports app, and in practice mode.
+
+## What's on the page
+
+| Section | What it shows |
+|---|---|
+| Scores strip | Every game with team colors, AP rank and each side's chance to win |
+| Best Bets | Only picks with value, in plain words: "wins 56 of 100 · +$6 per $100 on average" and a stake (1 unit or ½) |
+| Game cards | Each team's projected points and record, a win-chance bar in team colors with a tick for the sportsbooks, and the spread, total and moneyline |
+| Why | The plain-English reason for the pick or the pass |
+| Your Call | Pick any outcome and how often you think it happens; the page shows the payout, the break-even and the value for you and for the model |
+| By Quarter | Projected points for every half and quarter |
+| Betting 101 | Odds as "out of 100", reading the price, value and ROI, risk, and a risk calculator |
+| Report Card | @sec-reportcard, live |
+| Model Check | Automatic checks every time the page is built |
+
+: The weekly card. {#tbl-site}
+
+## Probabilities that mean what they say
+
+The model predicts points, not probabilities. The page converts them in two ways, both
+fitted on out-of-sample 2021–2025 predictions (`scripts/calibrate.py`,
+`models/calibration.json`):
+
+- **Win chance** $= \Phi(\widehat{m} / \sigma)$, where $\widehat{m}$ is the projected
+  margin and $\sigma =$ `{python} f"{cal['sigma_margin']:.1f}"` points is the spread of
+  the model's real margin errors. When it says 75, the team won about 77 of 100.
+- **Cover and over chances** come from a logistic fit of real outcomes on the model's edge
+  vs the opening line (and, for totals, the shootout flag). For spreads the edge has had
+  no predictive value, so cover chances sit near 50% and no spread is ever picked.
+
+```{python}
+#| label: fig-reliability
+#| fig-cap: "Win-chance calibration, 2021–2025: what the model said vs how often it happened."
+rel = pd.DataFrame(cal["win_reliability"])
+fig, ax = plt.subplots(figsize=(4.2, 3.4))
+ax.plot([0, 1], [0, 1], color=INK_2, lw=1, ls="--")
+ax.scatter(rel.predicted, rel.actual, s=rel.n / 4, color=ORANGE, zorder=3)
+ax.set_xlabel("model said"); ax.set_ylabel("actually happened")
+ax.set_xlim(0, 1); ax.set_ylim(0, 1); bar_ends(ax); plt.tight_layout(); plt.show()
+```
+
+## How a pick is chosen
+
+Expected value per $1 risked at −110 is $p \cdot \tfrac{100}{110} - (1 - p)$.
+
+| Label | Rule | Stake |
+|---|---|---|
+| **Best Bet** | Expected value at least +3% | 1 unit (1% of bankroll) |
+| **Lean** | Expected value +1% to +3% | ½ unit |
+| **Pass** | Anything less, **or the two paper rules disagree** | none |
+
+: Pick tiers. {#tbl-tiers}
+
+## Checks before anything is shown
+
+The page won't hide a problem. Every build runs nine checks: every FBS game is predicted,
+nothing is missing, spread and total add up, opening lines exist, the model agrees with
+the books on who's better, totals are near the market's, win chances are honest
+(judged with a sample-size-aware rule), the practice log matches the rules, and every
+prediction was made before kickoff. A failed check is shown at the top of that section.

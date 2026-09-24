@@ -31,6 +31,10 @@ Run these in order. Notebooks live in `notebooks/`; scripts in `scripts/`.
 8. **Halves and quarters:** `04_team_total/periods.ipynb`
 9. **Weekly card:** `uv run python scripts/predict_week.py` → `data/predictions/`, `paper_trading/`
 10. **Grading:** `uv run python scripts/grade_paper.py` → `paper_trading/2026_results.csv`, `2026_summary.md`
+11. **Calibration:** `uv run python scripts/calibrate.py` → `models/calibration.json`
+12. **Report card:** `uv run python scripts/scorecard.py` → `models/scorecard.json`
+13. **Improvement rounds:** `scripts/round2_experiments.py`, `scripts/round3_recency.py`
+14. **Weekly card website:** `uv run python scripts/build_site.py` → `site/index.html`
 
 The 2025 test in step 7 is meant to be run once. Re-running it reproduces the same
 numbers (the seeds are fixed), but changing the model after looking at it would make it

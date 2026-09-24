@@ -1,5 +1,15 @@
 # ML pipeline
 
+## Current status (2026-09-23)
+- Final model: random forest on the ratings residual, features `+preseason`
+  (`src/canes_cfb/modeling.py`). Average of all six tuned models runs as a shadow model.
+- Report card, out of sample 2021–2025: winner 70.8% (books 71.9%), AUC 0.773 (0.793);
+  margin MAE 12.7 (12.1); total MAE 12.9 (12.5); team points 9.1 (8.8).
+- Betting: no edge on moneyline, spread or totals overall; shootout-under (~56%) is the one
+  signal that has held. Practice mode.
+- Rounds 2–3 (ensembles, dedicated targets, recency) adopted nothing under the
+  pre-registered rule. Next: new information (starting QB, weather, bowl opt-outs).
+
 The same pipeline runs for every market. The first target is **points per team, full
 game**. Spread (difference), total (sum) and winner (who scores more) all derive from it.
 Dedicated spread and total models are built later and must beat the derived version to

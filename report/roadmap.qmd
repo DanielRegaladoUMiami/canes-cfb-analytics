@@ -2,14 +2,16 @@
 
 ## Open work
 
-| Issue | What | Status |
+| What | Why | Status |
 |---|---|---|
-| #10 | Totals model on the nonlinear insights | **Done**: not adopted (overfit); conflicts skipped (@tbl-totals) |
-| — | **Grade 2026 paper picks weekly**; revisit rules at season end | Running (GitHub Action) |
-| #4 | Betting lines for halves, quarters and team totals | Decided: models first, lines later |
-| #8 | Weather (wind thresholds of about 10 and 15 mph; @fsh_wind) via the free Open-Meteo API | Backlog |
-| — | Winner probabilities from the predicted margin | Backlog |
-| — | Real-money decision after a full season of paper results | 2026 season end |
+| **Starting quarterback and injuries** | The biggest information gap vs the market | Next (#11) |
+| **Weather** (wind of about 10 and 15 mph; @fsh_wind) via Open-Meteo | Totals | Next (#8) |
+| **Bowls**: opt-outs, rest, bowl tier | Largest gap after early season | Next (#11) |
+| **Blowouts**: game script when starters sit | Largest gap by spread size | Next (#11) |
+| Grade every 2026 week; track results and CLV | The real test | Running (GitHub Action) |
+| Shadow model (average of 6) vs current model | Settle round 2 with new data | End of 2026 |
+| Real-money decision | Only after a full season above 52.4% with positive CLV | End of 2026 |
+| `CFBD_API_KEY` repository secret; rotate the key | The Action can't run without it | Owner action |
 
 : Open work. {#tbl-open}
 

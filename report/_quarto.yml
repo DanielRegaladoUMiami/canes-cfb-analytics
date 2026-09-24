@@ -23,9 +23,14 @@ book:
         - nonlinearity.qmd
         - modeling.qmd
         - periods.qmd
+    - part: "How good is it?"
+      chapters:
+        - reportcard.qmd
+        - improvements.qmd
     - part: "Betting"
       chapters:
         - betting.qmd
+        - website.qmd
         - decisions.qmd
         - roadmap.qmd
   appendices:

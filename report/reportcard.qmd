@@ -1,0 +1,82 @@
+# Report card {#sec-reportcard}
+
+```{python}
+exec(open("_common.py").read())
+import json
+card = json.loads((ROOT / "models" / "scorecard.json").read_text())
+w, s, t, tt = card["winner"], card["spread"], card["total"], card["team_total"]
+```
+
+This chapter answers the simplest question: **how often is the model right, for each
+thing it predicts, compared with the sportsbooks?** Every number comes from seasons the
+model never saw. Each season from 2021 to 2025 is predicted by a model trained only on
+earlier seasons (`scripts/scorecard.py`, read live from `models/scorecard.json`).
+
+## The scorecard
+
+```{python}
+#| label: tbl-scorecard
+#| tbl-cap: "Out-of-sample report card, 2021–2025. Market = closing lines (moneylines de-vigged; swapped moneylines removed)."
+pct = lambda x: f"{100 * x:.1f}%"
+pts = lambda x: f"{x:.2f} pts"
+rows = [
+    ("Winner", "Picks the right winner", pct(w["model"]["accuracy"]), pct(w["market"]["accuracy"])),
+    ("Winner", "AUC (0.5 coin flip, 1 perfect)", f"{w['model']['auc']:.3f}", f"{w['market']['auc']:.3f}"),
+    ("Winner", "Brier score (lower is better)", f"{w['model']['brier']:.3f}", f"{w['market']['brier']:.3f}"),
+    ("Spread", "Average miss on the final margin", pts(s["mae_margin_model"]), pts(s["mae_margin_market"])),
+    ("Spread", "Covers, model's side vs opening line", pct(s["ats_vs_open"]["win_rate"]), "—"),
+    ("Spread", "Covers, model's side vs closing line", pct(s["ats_vs_close"]["win_rate"]), "—"),
+    ("Total", "Average miss on total points", pts(t["mae_model"]), pts(t["mae_market"])),
+    ("Total", "Wins, model's side vs opening line", pct(t["ou_vs_open"]["win_rate"]), "—"),
+    ("Total", "Wins, model's side vs closing line", pct(t["ou_vs_close"]["win_rate"]), "—"),
+    ("Team points", "Average miss on each team's points", pts(tt["mae_model"]), pts(tt["mae_market"])),
+]
+pd.DataFrame(rows, columns=["Target", "Measure", "Model", "Sportsbooks"]).set_index("Target")
+```
+
+Reading it:
+
+- **Picking winners: good.** The model picks the right winner about 7 times in 10, close
+  to the sportsbooks. An AUC around 0.77 is solid for college football.
+- **Beating the price: not yet.** Against the spread and the total, betting the model's
+  side lands near 50%, and you need 52.4% at −110 just to break even. Betting the
+  moneyline where the model is more confident than the books returned **−4.5%**
+  (@sec-decisions).
+- **Accuracy gap:** the books are about 0.4–0.6 points more accurate on margins and
+  totals.
+
+## Halves and quarters
+
+```{python}
+#| label: tbl-periods-card
+#| tbl-cap: "Halves and quarters: average miss vs guessing the average (no sportsbook lines yet)."
+per = pd.DataFrame(card["periods"]).T
+per["improvement"] = (100 * (per.mae_model / per.mae_constant - 1)).map(lambda x: f"{x:.0f}%")
+per.rename(columns={"mae_model": "model (pts)", "mae_constant": "guess the average (pts)"}).round(2)
+```
+
+## Where the model falls behind
+
+The most useful part of a report card is where the grade is lowest. The gap is how many
+points worse than the sportsbooks the model's margin is.
+
+```{python}
+#| label: fig-gaps
+#| fig-cap: "Margin error gap vs the closing line, by part of the season and by spread size (points; lower is better)."
+seg_w = pd.DataFrame(card["segments"]["week_bucket"]).T
+seg_s = pd.DataFrame(card["segments"]["spread_bucket"]).T
+fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.8))
+for ax, seg, title in ((axes[0], seg_w, "Part of season"), (axes[1], seg_s, "Spread size")):
+    ax.barh(range(len(seg)), seg.gap, color=ORANGE, height=0.6)
+    ax.set_yticks(range(len(seg))); ax.set_yticklabels(seg.index, fontsize=8)
+    ax.invert_yaxis(); ax.set_title(title, fontsize=10)
+    for i, v in enumerate(seg.gap):
+        ax.text(v + 0.03, i, f"+{v:.1f}", va="center", fontsize=8, color=INK_2)
+    ax.set_xlim(0, max(seg_w.gap.max(), seg_s.gap.max()) * 1.25); bar_ends(ax)
+plt.tight_layout(); plt.show()
+```
+
+Three weak spots stand out: **the first weeks of the season**, **bowls and the
+playoff**, and **blowouts** (spreads above three touchdowns). In the middle and late
+regular season the model is almost level with the market. The first weak spot was
+addressed with preseason information (@sec-improvements); the others are on the roadmap.

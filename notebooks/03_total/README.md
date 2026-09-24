@@ -6,7 +6,7 @@
 
 | Notebook | Period | Points counted | Status |
 |---|---|---|---|
-| [`full_game.ipynb`](full_game.ipynb) | full_game | Q1 + Q2 + Q3 + Q4 + OT | not started |
+| [`full_game.ipynb`](full_game.ipynb) | full_game | Q1 + Q2 + Q3 + Q4 + OT | done: totals model on nonlinear insights (#10), not adopted |
 | [`1H.ipynb`](1H.ipynb) | 1H | Q1 + Q2 | not started |
 | [`2H.ipynb`](2H.ipynb) | 2H | Q3 + Q4 + OT | not started |
 | [`Q1.ipynb`](Q1.ipynb) | Q1 | Q1 | not started |

@@ -6,7 +6,7 @@
 
 | Notebook | Period | Points counted | Status |
 |---|---|---|---|
-| [`full_game.ipynb`](full_game.ipynb) | full_game | Q1 + Q2 + Q3 + Q4 + OT | not started |
+| [`full_game.ipynb`](full_game.ipynb) | full_game | Q1 + Q2 + Q3 + Q4 + OT | done: the main points model (tuning, ensemble, 2025 test) |
 | [`1H.ipynb`](1H.ipynb) | 1H | Q1 + Q2 | not started |
 | [`2H.ipynb`](2H.ipynb) | 2H | Q3 + Q4 + OT | not started |
 

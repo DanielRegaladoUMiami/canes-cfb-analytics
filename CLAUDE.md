@@ -12,7 +12,9 @@ period, all judged against the closing line.
 - Jupyter notebooks for models; shared code in `src/canes_cfb/`
 
 ## Current milestone
-v0.2: points-per-team model. Data, features v1+v2 and first backtest done; next Optuna + ensemble + market-residual model.
+2026 season in practice mode: weekly predictions, paper picks and the weekly card run from
+`scripts/predict_week.py` → `grade_paper.py` → `build_site.py` (GitHub Action, Wednesdays).
+Next model work: starting-QB/injury information, weather, bowls (issues #11, #8).
 
 ## Local rules
 - Conventional Commits (feat:, fix:, docs:, refactor:, chore:, test:)
@@ -37,7 +39,11 @@ uv run jupyter lab
 uv run pytest
 uv run python scripts/make_notebooks.py   # after editing markets.py
 uv run python scripts/tune_team_points.py  # Optuna, ~30-60 min
-uv run python scripts/predict_week.py      # next slate's card (needs CFBD_API_KEY)
+uv run python scripts/predict_week.py      # next slate + paper picks (needs CFBD_API_KEY)
+uv run python scripts/grade_paper.py       # grade finished paper picks
+uv run python scripts/calibrate.py         # probabilities from out-of-sample 2021-2025
+uv run python scripts/scorecard.py         # report card for every target
+uv run python scripts/build_site.py        # weekly card website (site/index.html)
 ```
 
 - The 2025 test in `04_team_total/full_game` is run once. Don't re-tune or re-select
@@ -57,3 +63,9 @@ The repo sits under iCloud-synced `~/Desktop`, and iCloud hides the venv's `.pth
 which breaks `import canes_cfb`. So `.venv` is a symlink to `.venv.nosync/`, which iCloud
 never syncs. On a fresh clone:
 `mkdir .venv.nosync && ln -s .venv.nosync .venv && uv sync`.
+
+## Anti-overfitting rule (use for every model change)
+Pre-register the candidates. Adopt only if margin MAE beats the current model in at least
+2 of the 3 decision seasons (2021–2023) and the paired bootstrap 95% interval of the gain
+excludes zero. 2024–2025 are a check only. Log every attempt in `docs/experiments/`,
+including failures. The website, README and book are in English.

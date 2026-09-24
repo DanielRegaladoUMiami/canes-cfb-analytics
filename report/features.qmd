@@ -118,6 +118,7 @@ desc = {
     "efficiency": "ridge-adjusted tempo, EPA/play, success rate, explosiveness, pass/rush EPA",
     "pace_x_efficiency": "expected plays × expected EPA/play, game pace, pass-vs-rush edge",
     "priors": "talent composite and returning production, team and opponent",
+    "preseason": "transfer portal, recruiting classes, new head coach, preseason AP poll (adopted later; @sec-improvements)",
 }
 pd.DataFrame({"features": {k: len(v) for k, v in fams.items()}, "what": desc})
 ```

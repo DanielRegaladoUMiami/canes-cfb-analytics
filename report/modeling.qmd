@@ -128,3 +128,11 @@ the edge vs the opener, the edge × early season, and the size of the line) was 
   which is now a separate, explicit rule.
 
 The layer was dropped from the weekly card. Its useful part lives on as rule B.
+
+::: {.callout-note}
+## What changed after the test
+The 2025 test above used the features up to `priors`. Later, preseason features were
+adopted under the anti-overfitting rule (decided on 2021–2023, confirmed on 2024–2025;
+@sec-improvements), and the production model uses them. The report card
+(@sec-reportcard) reflects the current model.
+:::

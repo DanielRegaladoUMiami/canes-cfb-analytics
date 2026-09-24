@@ -18,6 +18,9 @@ explicitly. A project like this is only trustworthy if its mistakes are visible.
 | Real money | **No**; paper-trade two pre-registered rules through 2026 | Bet now | Edge not proven; the market is more accurate on average |
 | Weekly runs | GitHub Actions | Local cron, manual | Runs with the Mac off; commits give tamper-evident timestamps |
 | Totals model (#10) | **Not adopted**; keep rule B; skip A-vs-B conflicts | Adopt the nonlinear totals model | It overfit (2021–23 gains vanished in 2024–25); the one-line rule held |
+| Preseason features | **Adopted** (portal, recruiting, new coach, preseason AP) | Keep the model as is | Early-season gap down in both decision and check seasons |
+| Improvement rounds 2–3 | **Nothing adopted**; average-of-6 kept as a shadow model | Adopt the best-looking candidate | Pre-registered rule: ≥2 of 3 seasons better and a bootstrap interval above zero |
+| Weekly card | English, sports-app layout, private page | Spanish, spreadsheet-style | Easier for a non-expert to use |
 | Period lines (#4) | Build models now, buy lines later | Buy history now ($119) or forward only ($30/month) | See whether period models predict well first |
 
 : Main decisions. {#tbl-decisions}
@@ -46,6 +49,18 @@ explicitly. A project like this is only trustworthy if its mistakes are visible.
    when a threshold reached 48.4%). They were replaced with the exact ranges.
 8. **Opening lines availability.** The early "vs open" backtest was described as
    covering 2019–2023; opening lines only exist from 2021, so it covered 2021–2023.
+
+9. **Swapped moneylines faked a gold mine.** The first moneyline backtest showed +12% to
+   +42% ROI. It was 2.1% of moneylines with home and away swapped. After filtering them:
+   −4.5% (@sec-reportcard).
+10. **A missing experiment log.** A lint error stopped the command that wrote the rounds
+    2–3 log, while the commit message said it was included. It was written afterwards.
+11. **A too-simple calibration check.** A fixed 5-point threshold flagged one bin (said
+    45%, happened 40%, 492 games) that is only 2.3 standard errors off. The check now
+    uses the average miss and a z-score, and reports that bin as "Review", not hidden.
+12. **Week 4 picks re-logged.** After the preseason features were adopted, week 4's paper
+    picks were re-logged with the new model before any kickoff; the first version is in
+    git history.
 
 ## What the evidence says, plainly
 

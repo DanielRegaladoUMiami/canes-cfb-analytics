@@ -58,12 +58,14 @@ canes-cfb-analytics/
 │   ├── features.py periods.py    as-of features
 │   ├── modeling.py validation.py market.py betting.py
 │   └── markets.py paths.py
-├── scripts/              make_notebooks · tune_team_points · predict_week · grade_paper
+├── scripts/              predict_week · grade_paper · build_site · calibrate · scorecard
+│                         tune_team_points · round2_experiments · round3_recency
 ├── models/               tuned parameters + final recipe (JSON)
 ├── paper_trading/        pre-registered picks and their graded results
 ├── docs/                 pipeline, market rules, research, experiment logs
+├── site/                 the weekly card website
 ├── report/               this book (Quarto)
-├── tests/                34 tests, including leakage tests
+├── tests/                39 tests, including leakage tests
 └── .github/workflows/    weekly automation
 ```
 
