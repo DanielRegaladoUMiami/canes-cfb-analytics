@@ -59,8 +59,8 @@ Expected value per $1 risked at −110 is $p \cdot \tfrac{100}{110} - (1 - p)$.
 
 | Label | Rule | Stake |
 |---|---|---|
-| **Best Bet** | Expected value at least +3% | 1 unit (1% of bankroll) |
-| **Lean** | Expected value +1% to +3% | ½ unit |
+| **Best Bet** | Win chance shown as 55% or more (≥ 54.5%, expected value ≥ +4%) | 1 unit (1% of bankroll) |
+| **Lean** | Win chance shown as 54% (53.5% to 54.5%, expected value +2% to +4%) | ½ unit |
 | **Pass** | Anything less, **or the two paper rules disagree** | none |
 
 : Pick tiers. {#tbl-tiers}

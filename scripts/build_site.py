@@ -34,8 +34,9 @@ def devig(home_ml: pd.Series, away_ml: pd.Series) -> pd.Series:
     return pd.Series(h / (h + a), index=home_ml.index)
 
 
-BEST_EV = 0.03  # "buen valor": at least +3% expected value per bet
-LIGHT_EV = 0.01  # "valor ligero": +1% to +3%; below that it's noise, so pass
+# Tiers by win chance, set on the whole-number % the page shows (break-even at -110: 52.4%)
+BEST_P = 0.545  # shows 55%+ -> Best Bet (expected value +4% or more)
+LEAN_P = 0.535  # shows 54%  -> Lean (+2% to +4%); 53% or less is too close to break-even
 
 
 def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
@@ -52,8 +53,8 @@ def verdict(row, conflict: bool) -> tuple[str, str | None, str]:
             f"but this looks like a shootout, and shootouts tend to go under. When that "
             f"happens, it's been a coin flip. Pass.",
         )
-    if row.total_ev >= LIGHT_EV:
-        tier = "best" if row.total_ev >= BEST_EV else "light"
+    if row.total_p_side >= LEAN_P:
+        tier = "best" if row.total_p_side >= BEST_P else "light"
         label = f"{row.total_side.capitalize()} {line}"
         if row.shootout and row.total_side == "under":
             why = (

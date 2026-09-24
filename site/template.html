@@ -273,6 +273,15 @@ details.check-all > summary { cursor: pointer; font-family: var(--display); font
 .rc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 .gap-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-right: 6px; }
 td.win { color: var(--good); font-weight: 700; }
+/* when to bet */
+.rule { background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: 12px 14px; display: grid; gap: 10px; margin-bottom: 14px; }
+.rule h3 { font-size: 1.15rem; font-weight: 800; text-transform: uppercase; }
+.bands { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .bands { grid-template-columns: 1fr; } }
+.band { border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; display: grid; gap: 4px; align-content: start; }
+.band .range { font-family: var(--display); font-weight: 800; font-size: 1.3rem; line-height: 1; }
+.metric { font-weight: 700; font-size: 0.86rem; color: var(--ink-2); white-space: nowrap; }
+
 /* results */
 .res-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
 @media (max-width: 640px) { .res-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -337,6 +346,16 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
     <div>
       <section id="best-bets">
         <div class="section-title"><h2>Best Bets</h2><span class="small muted" id="bets-count"></span></div>
+        <div class="rule" aria-labelledby="rule-title">
+          <h3 id="rule-title">When do we bet?</h3>
+          <p class="small">Look at one number: the <strong>win chance of the bet</strong> (over or under the total). At −110 you need <strong>52.4%</strong> just to break even, so we only bet when it's clearly above that.</p>
+          <div class="bands">
+            <div class="band"><span class="tag pass" style="justify-self:start">Pass</span><span class="range">53% or less</span><span class="small muted">Too close to 52.4%. Don't bet.</span></div>
+            <div class="band"><span class="tag light" style="justify-self:start">Lean</span><span class="range">54%</span><span class="small muted">Small edge. Bet half a unit.</span></div>
+            <div class="band"><span class="tag best" style="justify-self:start">Best Bet</span><span class="range">55% or more</span><span class="small muted">Clear edge. Bet 1 unit (1% of your bankroll).</span></div>
+          </div>
+          <p class="small muted">Not the same as the big % on each game: that's the chance a <em>team wins the game</em>, which isn't a bet by itself. Spreads are never picked: their win chance has stayed near 50%.</p>
+        </div>
         <div class="bets" id="bets"></div>
         <p class="small muted" style="margin-top:10px" id="bets-note"></p>
       </section>
@@ -426,8 +445,8 @@ footer { margin-top: 36px; font-size: 0.82rem; color: var(--ink-3); border-top: 
       <div class="panel-card">
         <h3>How to read a card</h3>
         <div class="legend">
-          <div><span class="tag best">Best Bet</span><span class="small">Clear value: ~56% win chance.</span></div>
-          <div><span class="tag light">Lean</span><span class="small">Small value: ~53–54% win chance.</span></div>
+          <div><span class="tag best">Best Bet</span><span class="small">Clear value: 55%+ win chance.</span></div>
+          <div><span class="tag light">Lean</span><span class="small">Small value: 54% win chance.</span></div>
           <div><span class="tag pass">Pass</span><span class="small">No edge. Skipping is a pick too.</span></div>
           <p class="small muted">Big number on the right = each team's chance to win. The bar splits it in team colors; the black tick is what the sportsbooks think.</p>
         </div>
@@ -539,13 +558,15 @@ function card(g) {
     const wins = (side === "home") === homeFav;
     return `<div class="team">${mono(t, abbr(g, side))}<span class="tname">${rankTxt(t)}${esc(name)}${t.record ? `<span class="rec">(${esc(t.record)})</span>` : ""}</span><span class="proj ${wins ? "" : "lose"}">${pts}</span></div>`;
   };
-  const verdict = g.tier === "pass" ? `<span class="tag pass">Pass</span>` : `<span class="tag ${g.tier}">${TIER[g.tier]}</span><span class="pickname">${esc(g.bet)}</span>`;
+  const side = g.total_side ? `${g.total_side[0].toUpperCase()}${g.total_side.slice(1)} ${ln(g.total_open)}` : null;
+  const metric = side ? `<span class="metric">${esc(side)}: ${of100(g.total_p)}%</span>` : "";
+  const verdict = g.tier === "pass" ? `${conflict(g) ? `<span class="metric">Signals disagree</span>` : metric}<span class="tag pass">Pass</span>` : `<span class="tag ${g.tier}">${TIER[g.tier]}</span><span class="pickname">${esc(g.bet)}</span><span class="metric">${of100(g.total_p)}%</span>`;
   return `
   <article class="game" id="game-${g.id}">
-    <div class="g-head"><span class="g-when">${time(g.kickoff)}</span><span class="g-verdict">${verdict}</span></div>
+    <div class="g-head"><span class="g-when">${time(g.kickoff)}</span><span class="g-verdict" style="flex-wrap:wrap;justify-content:flex-end">${verdict}</span></div>
     <div class="g-main">
       <div class="teams">${row("away")}${row("home")}</div>
-      <div class="pct"><span class="big">${of100(homeFav ? pH : pA)}%</span><span class="who">${esc(favName)} to win</span></div>
+      <div class="pct"><span class="big">${of100(homeFav ? pH : pA)}%</span><span class="who">${esc(favName)} wins the game</span></div>
     </div>
     <div class="predictor">
       <div class="pbar" role="img" aria-label="${esc(g.away)} ${of100(pA)} percent, ${esc(g.home)} ${of100(pH)} percent"><span style="width:${(100 * pA).toFixed(1)}%;background:${ac}"></span><span style="width:${(100 * pH).toFixed(1)}%;background:${hc}"></span>${mkt == null ? "" : `<span class="mkt" style="left:calc(${(100 * (1 - mkt)).toFixed(1)}% - 1px)" title="Sportsbooks: ${esc(g.home)} ${of100(mkt)}%"></span>`}</div>
