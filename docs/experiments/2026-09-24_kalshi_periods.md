@@ -40,9 +40,11 @@ kickoff. 2026 weeks 1–3 (all Kalshi still keeps). `scripts/kalshi_backtest.py`
 | | Bets | Win % | ROI (after fees) |
 |---|---:|---:|---:|
 | Best | 127 | 52.8% | +4.3% |
-| Lean | 172 | 49.4% | −7.5% |
-| **Best + Lean** | **299** | **50.8%** | **−2.6%** |
-| Everything else (main lines) | 1,471 | 53.0% | −3.7% |
+| Lean | 173 | 49.7% | −6.9% |
+| **Best + Lean** | **300** | **51.0%** | **−2.3%** |
+| Everything else (main lines) | 1,470 | 53.1% | −3.9% |
+
+(Numbers after the weather model was adopted; before it: 299 picks, 50.8%, −2.6%.)
 
 Brier score on all 1,836 main lines: **Kalshi mid 0.2240, model 0.2256** (lower is
 better). Kalshi's own prices predicted these outcomes slightly better than we did. The

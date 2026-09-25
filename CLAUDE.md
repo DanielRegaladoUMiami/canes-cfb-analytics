@@ -17,7 +17,7 @@ period, all judged against the closing line.
 (GitHub Action, Wednesdays; Fridays re-snapshot Kalshi); `pages.yml` then deploys `site/`
 to GitHub Pages. Weather is in the model (round 4); QB features and Kalshi period picks
 were tested and not adopted (see `docs/experiments/2026-09-24_*`).
-Next model work: an injury proxy from box scores (key player missed last game), bowls.
+Next model work: bowls and blowouts (#11). The injury proxy (round 5) was tested and not adopted.
 
 ## Local rules
 - Conventional Commits (feat:, fix:, docs:, refactor:, chore:, test:)

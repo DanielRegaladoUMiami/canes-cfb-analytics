@@ -27,6 +27,7 @@ book:
       chapters:
         - reportcard.qmd
         - improvements.qmd
+        - rounds45.qmd
     - part: "Betting"
       chapters:
         - betting.qmd

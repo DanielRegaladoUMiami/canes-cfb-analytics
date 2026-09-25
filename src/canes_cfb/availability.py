@@ -53,3 +53,67 @@ def key_players(box: pd.DataFrame, games: pd.DataFrame, teams: pd.DataFrame) -> 
     k["missed_last"] = ~k.played_last & (k.team_games > 1)
     return k[["team_id", "role", "player", "games", "team_games", "per_game", "unit",
               "played_last", "missed_last"]]  # fmt: skip
+
+
+MISS_COLS = ["miss_qb", "miss_skill", "miss_def"]
+
+
+def _leaders(prior, n: int, used: set[int]) -> list[int]:
+    """Indexes of the top ``n`` players by a season-to-date stat, skipping players who
+    already have a role; adds them to ``used``."""
+    import numpy as np
+
+    top = [int(i) for i in np.argsort(-prior) if prior[i] > 0 and int(i) not in used][:n]
+    used.update(top)
+    return top
+
+
+def as_of_features(box: pd.DataFrame, games: pd.DataFrame, teams: pd.DataFrame) -> pd.DataFrame:
+    """Per (game_id, team_id): key players (season-to-date leaders before the game) who
+    recorded no stats in the team's previous game this season. Round 5 candidate
+    (docs/experiments/2026-09-24_availability_preregistration.md)."""
+    import numpy as np
+
+    done = games[games.completed]
+    b = team_ids(box[box.game_id.isin(done.game_id)], done, teams)
+    stats = ["pass_att", "carries", "rec_yds", "tackles"]
+    for c in stats:
+        b[c] = b[c].fillna(0.0) if c in b else 0.0
+    b = b.groupby(["game_id", "team_id", "player_id"], as_index=False)[stats].sum()
+
+    tg = pd.concat([
+        games[["game_id", "season", "start_utc", "home_id"]].rename(columns={"home_id": "team_id"}),
+        games[["game_id", "season", "start_utc", "away_id"]].rename(columns={"away_id": "team_id"}),
+    ]).sort_values("start_utc")  # fmt: skip
+    by_team = {k: d for k, d in b.groupby("team_id")}
+    rows = []
+    for (tid, _season), d in tg.groupby(["team_id", "season"]):
+        gids = d.game_id.tolist()
+        bt = by_team.get(tid)
+        bt = bt[bt.game_id.isin(gids)] if bt is not None else pd.DataFrame(columns=b.columns)
+        players = bt.player_id.unique()
+        pidx = {p: i for i, p in enumerate(players)}
+        gidx = {g: j for j, g in enumerate(gids)}
+        mats = {c: np.zeros((len(players), len(gids))) for c in stats}
+        played = np.zeros((len(players), len(gids)), dtype=bool)
+        for r in bt.itertuples():
+            i, j = pidx[r.player_id], gidx[r.game_id]
+            played[i, j] = True
+            for c in stats:
+                mats[c][i, j] = getattr(r, c)
+        cum = {c: np.cumsum(m, axis=1) for c, m in mats.items()}
+        for j, gid in enumerate(gids):
+            feat = {"game_id": gid, "team_id": tid, "miss_qb": 0.0, "miss_skill": 0.0,
+                    "miss_def": 0.0}  # fmt: skip
+            if j > 0 and len(players) and played[:, j - 1].any():
+                used: set[int] = set()
+                prior = {c: cum[c][:, j - 1] for c in stats}
+                out_last = ~played[:, j - 1]
+                qb = _leaders(prior["pass_att"], 1, used)
+                skill = _leaders(prior["carries"], 2, used) + _leaders(prior["rec_yds"], 3, used)
+                dfn = _leaders(prior["tackles"], 3, used)
+                feat["miss_qb"] = float(sum(out_last[i] for i in qb))
+                feat["miss_skill"] = float(sum(out_last[i] for i in skill))
+                feat["miss_def"] = float(sum(out_last[i] for i in dfn))
+            rows.append(feat)
+    return pd.DataFrame(rows)

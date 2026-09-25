@@ -1,0 +1,58 @@
+{
+  "table": [
+    {
+      "period": "check 2024-25",
+      "candidate": "A current",
+      "margin MAE": 12.53,
+      "total MAE": 12.8,
+      "wk 0-4 margin MAE": 13.63,
+      "winner %": 71.46,
+      "ATS open %": 49.94,
+      "O/U open %": 52.29
+    },
+    {
+      "period": "check 2024-25",
+      "candidate": "I1 availability",
+      "margin MAE": 12.57,
+      "total MAE": 12.83,
+      "wk 0-4 margin MAE": 13.68,
+      "winner %": 70.97,
+      "ATS open %": 50.57,
+      "O/U open %": 51.66
+    },
+    {
+      "period": "decide 2021-23",
+      "candidate": "A current",
+      "margin MAE": 12.83,
+      "total MAE": 12.99,
+      "wk 0-4 margin MAE": 13.15,
+      "winner %": 71.17,
+      "ATS open %": 50.24,
+      "O/U open %": 50.11
+    },
+    {
+      "period": "decide 2021-23",
+      "candidate": "I1 availability",
+      "margin MAE": 12.83,
+      "total MAE": 12.98,
+      "wk 0-4 margin MAE": 13.14,
+      "winner %": 71.21,
+      "ATS open %": 50.33,
+      "O/U open %": 51.58
+    }
+  ],
+  "verdicts": {
+    "I1 availability": {
+      "metric": "margin MAE",
+      "seasons better (of 3)": 1,
+      "gain 95% CI": "[-0.021, +0.031]",
+      "adopt": false
+    },
+    "I1 (total, info only)": {
+      "metric": "total MAE",
+      "seasons better (of 3)": 2,
+      "gain 95% CI": "[-0.020, +0.030]",
+      "adopt": false
+    }
+  }
+}

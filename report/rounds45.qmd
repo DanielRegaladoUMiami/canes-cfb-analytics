@@ -1,0 +1,123 @@
+# Weather, QBs, injuries, Kalshi {#sec-rounds45}
+
+```{python}
+exec(open("_common.py").read())
+import json
+r4 = json.loads((ROOT / "models" / "round4_weather_qb.json").read_text())
+r5 = json.loads((ROOT / "models" / "round5_availability.json").read_text())
+kb = json.loads((ROOT / "models" / "kalshi_backtest.json").read_text())
+clv = json.loads((ROOT / "models" / "clv_history.json").read_text())
+```
+
+@sec-improvements ended with a diagnosis: the gap to the market is **information, not
+modeling**. This chapter adds the information we could get for free and tests each piece
+with the same pre-registered rule. Every candidate was written down and committed before
+it was run (`docs/experiments/2026-09-24_*`).
+
+## Does the market agree with us? Closing-line value
+
+Before adding anything, a measurement. Closing-line value (CLV) is how far the line moves
+toward a bet between the open (where we'd bet) and kickoff. A bettor whose lines keep
+moving their way has information the market later adopts, even in weeks when results go
+against them.
+
+```{python}
+#| label: tbl-clv
+#| tbl-cap: "Closing-line value of the practice rules, out of sample 2021–2025 (points of line movement toward the bet)."
+names = {"edge4 (model side, |edge| >= 4)": "Model 4+ points off the total",
+         "shootout_under": "Under in shootouts", "all games, model side": "Every game, model's side"}
+t = pd.DataFrame(clv["all"])
+t["Rule"] = t.rule.map(names)
+t["Seasons with CLV > 0"] = [sum(clv["by_season"][s][i]["avg CLV (pts)"] > 0 for s in clv["by_season"])
+                             for i in range(len(t))]
+t.rename(columns={"bets": "Bets", "avg CLV (pts)": "Avg CLV", "win % vs open": "Won vs open (%)"})[
+    ["Rule", "Bets", "Avg CLV", "Won vs open (%)", "Seasons with CLV > 0"]].set_index("Rule")
+```
+
+The model's big disagreements with the opening total carry real information: the line
+moves toward them in every season. The shootout under is a different animal: it wins,
+but the line doesn't move toward it, a bias the market leaves in place all week.
+
+## Round 4: weather and quarterbacks
+
+Weather: wind, rain and temperature over the 3.5 hours from kickoff, from the nearest
+weather station for past games (Meteostat) and the forecast for upcoming ones
+(Open-Meteo). Quarterbacks: the team's most recent starter, his experience and passing
+efficiency, and whether the starter just changed, from the passing box score.
+
+```{python}
+#| label: tbl-round4
+#| tbl-cap: "Round 4 candidates. Decision seasons 2021–2023, check seasons 2024–2025."
+t4 = pd.DataFrame(r4["table"])
+d = t4[t4.period == "decide 2021-23"].set_index("candidate")
+c = t4[t4.period == "check 2024-25"].set_index("candidate")
+pd.DataFrame({"Total 21–23": d["total MAE"], "Margin 21–23": d["margin MAE"],
+              "O/U 21–23": d["O/U open %"], "Total 24–25": c["total MAE"],
+              "O/U 24–25": c["O/U open %"]}).round(2).rename_axis(None)
+```
+
+```{python}
+#| label: tbl-round4-verdict
+#| tbl-cap: "Round 4 verdicts (primary metric: total MAE for weather, margin MAE for quarterbacks)."
+pd.DataFrame(r4["verdicts"]).T.rename(columns={"seasons better (of 3)": "Seasons better",
+    "gain 95% CI": "Gain, 95% interval", "adopt": "Adopted", "metric": "Metric"})
+```
+
+Weather improves total-points error in all three decision seasons and was **adopted**. W2 (the same idea as thresholds) also passed, with a weaker interval; only the stronger version, W1, went into the model.
+The gain is small, and it lowers the error more than it moves the O/U record, which goes
+down in 2021–23 and up in 2024–25. Quarterback features add nothing the team ratings
+don't already carry.
+
+## Round 5: an injury proxy
+
+No free source publishes college football injury reports as data. The closest thing is
+the box score: a key player (the QB, top two rushers, top three receivers, top three
+tacklers) who had stats earlier in the season but **none in his team's previous game**.
+
+```{python}
+#| label: tbl-round5
+#| tbl-cap: "Round 5: key-player availability (primary metric: margin MAE)."
+pd.DataFrame(r5["verdicts"]).T.rename(columns={"seasons better (of 3)": "Seasons better",
+    "gain 95% CI": "Gain, 95% interval", "adopt": "Adopted", "metric": "Metric"})
+```
+
+Not adopted. Many of those players return the next week, and when they don't, the news
+reaches the line before kickoff. The flag stays on the website as information.
+
+## Kalshi: halves, quarters and team totals
+
+Kalshi lists what our sportsbook data doesn't. Two findings came before any bet:
+
+1. **Split the market, don't replace it.** Each team's points implied by the sportsbook
+   line, split across halves and quarters by the model's shares, beat the period models
+   in every period. The period models alone predicted medians, so their quarters summed
+   to about 47 points against about 53 for the full game.
+2. **Honest ladders.** The chance a period lands over any line comes from the model's
+   out-of-sample errors; on 2024–2025 lines the calibration error is under 3.5 points.
+
+Then the test that matters: real Kalshi prices from 2026 weeks 1–3, four hours before
+kickoff, with the pre-registered rules.
+
+```{python}
+#| label: tbl-kalshi
+#| tbl-cap: "Kalshi backtest, 2026 weeks 1–3 (profit after fees)."
+tiers = {"best": "Best", "light": "Lean", "pass": "Everything else"}
+rows = [{"Tier": tiers[k], "Bets": v["bets"], "Win %": v["win %"], "ROI %": v["ROI %"]}
+        for k, v in kb["tiers"].items() if k in tiers]
+p = kb["picks (best + lean)"]
+rows.append({"Tier": "Best + Lean", "Bets": p["bets"], "Win %": p["win %"], "ROI %": p["ROI %"]})
+pd.DataFrame(rows).set_index("Tier")
+```
+
+On all `{python} kb["main_lines"]` main lines, Kalshi's own prices predicted outcomes
+slightly better than the model (Brier `{python} kb["brier_kalshi_mid"]` vs
+`{python} kb["brier_model"]`). Not adopted for picks: the site shows Kalshi prices next to
+the model's chance as information, and the would-be picks are logged on paper so the 2026
+season can settle it.
+
+## Where that leaves us
+
+The information that would close the gap (who is actually playing this week) isn't
+available for free. What was available (weather) went in, and what didn't help was
+documented and left out. The recommendations stay where the evidence is: totals, and
+only when the win chance clears 54%.

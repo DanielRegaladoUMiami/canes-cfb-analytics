@@ -60,5 +60,5 @@ Last updated: 2026-09-23 (2026 season, week 4). Details for every finished item 
 - [x] Kalshi halves/quarters/team totals: calibrated probabilities, price backtest,
       not adopted for picks; shown as information, logged on paper
 - [x] Rosters, key players and a "no stats last game" injury proxy on the site
-- [ ] Test the injury proxy as a model feature (needs box scores 2016–2025, ~180 CFBD calls)
+- [x] Injury proxy (key player had no stats last game) as a model feature: tested, not adopted
 - [ ] Bowls and blowouts (#11)
